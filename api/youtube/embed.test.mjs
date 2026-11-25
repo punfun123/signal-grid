@@ -60,8 +60,8 @@ test('accepts custom origin parameter', async () => {
   assert.equal(config.origin, 'http://127.0.0.1:46123');
 });
 
-function withPreviewEnv(env, fn) {
-  const keys = ['VERCEL_ENV', 'VERCEL_URL', 'VERCEL_BRANCH_URL'];
+function withEmbedEnv(env, fn) {
+  const keys = ['VERCEL_ENV', 'VERCEL_URL', 'VERCEL_BRANCH_URL', 'GRID_PUBLIC_ORIGIN'];
   const saved = Object.fromEntries(keys.map((k) => [k, process.env[k]]));
   for (const k of keys) {
     if (env[k] === undefined) delete process.env[k];
@@ -75,7 +75,7 @@ function withPreviewEnv(env, fn) {
   });
 }
 
-test('a preview deployment trusts only its own Vercel hostnames', () => withPreviewEnv({
+test('a preview deployment trusts only its own Vercel hostnames', () => withEmbedEnv({
   VERCEL_ENV: 'preview',
   VERCEL_URL: 'worldmonitor-r6q9o-eliewm.vercel.app',
   VERCEL_BRANCH_URL: 'worldmonitor-git-feature-eliewm.vercel.app',
@@ -97,7 +97,7 @@ test('a preview deployment trusts only its own Vercel hostnames', () => withPrev
   }
 }));
 
-test('production trusts no Vercel preview origin, eliewm-shaped or not', () => withPreviewEnv({
+test('production trusts no Vercel preview origin, eliewm-shaped or not', () => withEmbedEnv({
   VERCEL_ENV: 'production',
   VERCEL_URL: 'worldmonitor-r6q9o-eliewm.vercel.app',
   VERCEL_BRANCH_URL: 'worldmonitor-git-main-eliewm.vercel.app',
@@ -111,6 +111,23 @@ test('production trusts no Vercel preview origin, eliewm-shaped or not', () => w
     const { config } = await render(`?${query}`);
     assert.equal(config.origin, 'https://worldmonitor.app', origin);
     assert.equal(config.parentOrigin, 'https://worldmonitor.app', origin);
+  }
+}));
+
+test('the configured SIGNAL GRID origin receives player status in production', () => withEmbedEnv({
+  VERCEL_ENV: 'production',
+  GRID_PUBLIC_ORIGIN: 'https://signal-grid-one.vercel.app',
+}, async () => {
+  const query = new URLSearchParams({ videoId: 'iEpJwprxDdk' });
+  for (const [origin, expected] of [
+    ['https://signal-grid-one.vercel.app', 'https://signal-grid-one.vercel.app'],
+    ['https://signal-grid-preview.vercel.app', 'https://worldmonitor.app'],
+  ]) {
+    query.set('origin', origin);
+    query.set('parentOrigin', origin);
+    const { config } = await render(`?${query}`);
+    assert.equal(config.origin, expected);
+    assert.equal(config.parentOrigin, expected);
   }
 }));
 

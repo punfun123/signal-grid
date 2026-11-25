@@ -45,7 +45,9 @@ function sanitizeAllowedOrigin(raw, fallback, allowList = ALLOWED_ORIGINS) {
       return fallback;
     }
     const origin = parsed.origin !== 'null' ? parsed.origin : raw;
-    if (isOwnPreviewDeploymentOrigin(origin) || allowList.some(p => p.test(origin))) return origin;
+    if (origin === process.env.GRID_PUBLIC_ORIGIN?.trim()
+      || isOwnPreviewDeploymentOrigin(origin)
+      || allowList.some(p => p.test(origin))) return origin;
   } catch { /* invalid URL */ }
   return fallback;
 }
