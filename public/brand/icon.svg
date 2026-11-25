@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <title>SIGNAL GRID</title>
+  <g stroke="#80ba9b" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M51 19A23 23 0 1 0 55 33M56 23v-9h-9"/>
+    <path d="M9 32h46M14 19h28M14 45h35" opacity=".72"/>
+    <path d="M32 9c-7 6-11 14-11 23s4 17 11 23c7-6 11-14 11-23 0-3-.4-6-1.2-8.5"/>
+  </g>
+  <path d="m32 32 24-18" stroke="#a9e2bd" stroke-width="4" stroke-linecap="round"/>
+  <circle cx="32" cy="32" r="5" fill="#dcfee6" stroke="#18241d" stroke-width="1.5"/>
+</svg>
