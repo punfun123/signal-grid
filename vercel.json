@@ -1,7 +1,8 @@
 {
-  "buildCommand": "npm run build:full",
+  "buildCommand": "npm run build:vercel",
   "framework": "vite",
   "outputDirectory": "dist",
+  "builds": [{"src": "package.json", "use": "@vercel/static-build"}],
   "crons": [],
   "redirects": [
     {"source": "/", "destination": "/dashboard", "permanent": false},

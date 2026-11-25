@@ -1,16 +1,11 @@
-// The hosted MCP route is disabled. Keep the upstream callable entry and
-// named exports available to the source tree's MCP tests and tools.
+// Vercel-edge route entry. The implementation lives under ./mcp/; this file
+// stays here so the deployed route URL (`/api/mcp`) doesn't move.
 
-import { gridDisabledResponse } from '../shared/grid-profile.js';
 import { latestProtocolVersion, supportedProtocolVersions } from './mcp/constants';
-import upstreamHandler from './mcp/handler';
 
-export const config = { runtime: 'nodejs' };
+export const config = { runtime: 'edge' };
 
-export default Object.assign(
-  (...args: Parameters<typeof upstreamHandler>) => upstreamHandler(...args),
-  { fetch: gridDisabledResponse },
-);
+export { default } from './mcp/handler';
 export { mcpHandler } from './mcp/handler';
 export {
   applyPerMinuteLimit,

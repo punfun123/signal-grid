@@ -50,9 +50,9 @@ npm run dev -- --host 127.0.0.1
 
 ## Vercel
 
-`vercel.json` 使用 Node.js 24、`npm run build:full` 和 `dist`，根路径进入 `/dashboard`，原版 API 路由继续使用同一项目。配置独立 Redis REST、会话密钥、站点和对应源码地址。刷新任务运行在能访问该 Redis 的独立运行环境，持续运行的 AIS 或其他中继可以按需连接。Vercel 可用配额与中继部署依据实际套餐和流量。
+Vercel 使用 Node.js 24 和 `npm run build:vercel`。构建将原版 API 处理器打包到同一个函数并保留原 URL，根路径进入 `/dashboard`。配置独立 Redis REST、会话密钥、站点和对应源码地址。刷新任务运行在能访问该 Redis 的独立运行环境，持续运行的 AIS 或其他中继可以按需连接。Vercel 可用配额与中继部署依据实际套餐和流量。
 
-开源发布仓库为 [punfun123/signal-grid](https://github.com/punfun123/signal-grid)。仓库拟用 `production-data.yml` 刷新生产缓存，启用前需要独立 Redis 的 Actions secrets。上游 GitHub 工作流保存在 `.github/upstream-workflows/`。
+生产域名为 [signal-grid-one.vercel.app](https://signal-grid-one.vercel.app)，对应源码在 [punfun123/signal-grid](https://github.com/punfun123/signal-grid)。`production-data.yml` 配置为每 15 分钟请求一次数据刷新，也支持手动触发。任务通过 GitHub Actions secrets 连接生产 Redis。GitHub 运行器无法可靠查询 YouTube 频道的直播状态，生产采集跳过此查询。播放器继续使用各媒体的官方 HLS 或 YouTube 嵌入。上游 GitHub 工作流保存在 `.github/upstream-workflows/`。
 
 ## Docker 自托管
 
@@ -80,4 +80,4 @@ World Monitor 由 Elie Habib 开发，版权归原作者。此次修改遵循 [A
 - RSS 接口样本覆盖 18 个分类、145 家媒体、334 条带来源的报道，覆盖状态为部分可用。地震接口返回 89 条真实记录，快速 bootstrap 返回 50 条天气警报。加密报价接口返回 10 种资产，BTC、ETH、SOL 均带供应商更新时间。
 - 用临时本地测试值验证了 CA 的完整复制，以及 X 与图表链接。交付站点的配置保持空值。
 - 浏览器验收期间未观察到模型、嵌入或模型服务请求。摘要、聊天、预测、部件代理与本地模型入口均返回 404。
-- 通过生产构建、API 类型检查、架构边界检查和 118 项原版直播逻辑测试。Vercel 配置和 Compose 文件已准备，当前环境未运行 Docker，未执行公开部署。
+- 通过生产构建、API 类型检查、架构边界检查和 118 项原版直播逻辑测试。本地验收使用原生 Node 和 Redis。Docker 配置见自托管章节。

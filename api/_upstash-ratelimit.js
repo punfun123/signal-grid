@@ -10,6 +10,9 @@ let modules = null;
 
 export function loadUpstashRatelimit() {
   modules ??= Promise.all([import('@upstash/ratelimit'), import('@upstash/redis')])
-    .then(([ratelimit, redis]) => ({ Ratelimit: ratelimit.Ratelimit, Redis: redis.Redis }));
+    .then(([ratelimit, redis]) => ({
+      Ratelimit: ratelimit.Ratelimit ?? ratelimit.default?.Ratelimit,
+      Redis: redis.Redis,
+    }));
   return modules;
 }

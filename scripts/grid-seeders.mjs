@@ -14,6 +14,7 @@ if (!process.env.UPSTASH_REDIS_REST_URL || !process.env.UPSTASH_REDIS_REST_TOKEN
 }
 
 const watch = process.argv.includes('--watch');
+const resolveYouTube = !process.argv.includes('--skip-youtube-resolution');
 const refresh = [
   ['earthquakes', 5],
   ['weather-alerts', 10],
@@ -21,7 +22,7 @@ const refresh = [
   ['prediction-markets', 15],
   ['security-advisories', 60],
   ['crypto-quotes', 5],
-  ['live-video-resolved', 60],
+  ...(resolveYouTube ? [['live-video-resolved', 60]] : []),
   ['market-quotes', 15, 'ALPHA_VANTAGE_API_KEY', 'FINNHUB_API_KEY'],
   ['commodity-quotes', 15, 'ALPHA_VANTAGE_API_KEY', 'FINNHUB_API_KEY'],
   ['internet-outages', 15, 'CLOUDFLARE_API_TOKEN'],

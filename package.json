@@ -142,6 +142,7 @@
     "prebuild:full": "npm run inventory:facts",
     "build:plugin": "npm run security:vite-env-secrets -- --strict-local && cross-env VITE_VARIANT=full vite build --config vite.plugin.config.ts",
     "build:full": "npm run security:vite-env-secrets -- --strict-local && tsc && vite build && npm run check:source-maps",
+    "build:vercel": "npm run build:full && node scripts/build-grid-vercel.mjs",
     "check:source-maps": "node --import tsx scripts/check-no-public-source-maps.mjs dist",
     "prebuild:tech": "npm run docs:dates -- --fetch-history && npm run product:facts",
     "build:tech": "npm run security:vite-env-secrets -- --strict-local && npm run build:openapi && npm run build:agent-skills && cross-env-shell VITE_VARIANT=tech \"tsc && vite build\"",
