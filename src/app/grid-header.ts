@@ -37,7 +37,7 @@ export function mountGridTokenControls(host: HTMLElement): void {
   addressLabel.textContent = 'CA';
   const addressValue = document.createElement('span');
   addressValue.className = 'grid-token-address-value';
-  addressValue.textContent = TOKEN_CA ? `${TOKEN_CA.slice(0, 5)}…${TOKEN_CA.slice(-4)}` : 'PENDING';
+  addressValue.textContent = TOKEN_CA ? `${TOKEN_CA.slice(0, 5)}…${TOKEN_CA.slice(-4)}` : '';
   address.append(addressLabel, ' ', addressValue);
   host.replaceChildren(symbol, address);
 

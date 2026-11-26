@@ -185,6 +185,7 @@ html.wm-pro-banner-reserved .pro-banner-slot {
   color: #221708;
 }
 .grid-token-address-value {
+  min-inline-size: 7ch;
   letter-spacing: 0.04em;
 }
 .grid-token-control {
