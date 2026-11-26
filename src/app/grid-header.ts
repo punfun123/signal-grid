@@ -6,7 +6,7 @@ const COPY_ICON = '<rect x="8" y="8" width="11" height="11" rx="1"/><path d="M15
 const CHART_ICON = '<path d="M3 3v17h18M6 15l5-5 4 2 5-6"/>';
 const X_ICON = '<path fill="currentColor" stroke="none" d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>';
 
-function iconControl<T extends HTMLButtonElement | HTMLAnchorElement>(control: T, label: string, icon: string): T {
+function iconControl<T extends HTMLElement>(control: T, label: string, icon: string): T {
   control.className = 'grid-token-control';
   control.title = label;
   control.setAttribute('aria-label', label);
@@ -17,14 +17,28 @@ function iconControl<T extends HTMLButtonElement | HTMLAnchorElement>(control: T
   return control;
 }
 
+function iconLink(href: string, label: string, icon: string): HTMLAnchorElement {
+  const link = iconControl(document.createElement('a'), label, icon);
+  link.href = href;
+  link.target = '_blank';
+  link.rel = 'noopener noreferrer';
+  return link;
+}
+
 export function mountGridTokenControls(host: HTMLElement): void {
   const symbol = document.createElement('span');
   symbol.className = 'grid-token-symbol';
   symbol.textContent = `$${PROJECT_SYMBOL}`;
   const address = document.createElement('span');
   address.className = 'grid-token-address';
-  address.textContent = TOKEN_CA ? `CA: ${TOKEN_CA.slice(0, 5)}…${TOKEN_CA.slice(-4)}` : 'CA: PENDING';
-  if (TOKEN_CA) address.title = TOKEN_CA;
+  address.title = TOKEN_CA || 'Contract address pending';
+  const addressLabel = document.createElement('span');
+  addressLabel.className = 'grid-token-address-label';
+  addressLabel.textContent = 'CA';
+  const addressValue = document.createElement('span');
+  addressValue.className = 'grid-token-address-value';
+  addressValue.textContent = TOKEN_CA ? `${TOKEN_CA.slice(0, 5)}…${TOKEN_CA.slice(-4)}` : 'PENDING';
+  address.append(addressLabel, ' ', addressValue);
   host.replaceChildren(symbol, address);
 
   if (TOKEN_CA) {
@@ -44,12 +58,14 @@ export function mountGridTokenControls(host: HTMLElement): void {
     host.append(copy, status);
   }
 
-  for (const [href, label, icon] of [[X_URL, 'SIGNAL GRID on X', X_ICON], [TOKEN_CHART_URL, '$GRID market chart', CHART_ICON]] as const) {
-    if (!href) continue;
-    const link = iconControl(document.createElement('a'), label, icon);
-    link.href = href;
-    link.target = '_blank';
-    link.rel = 'noopener noreferrer';
-    host.append(link);
+  const social = X_URL
+    ? iconLink(X_URL, 'SIGNAL GRID on X (Twitter)', X_ICON)
+    : iconControl(document.createElement('span'), 'Official X (Twitter) account pending', X_ICON);
+  social.classList.add('grid-token-social');
+  if (!X_URL) social.setAttribute('role', 'img');
+  host.append(social);
+
+  if (TOKEN_CHART_URL) {
+    host.append(iconLink(TOKEN_CHART_URL, '$GRID market chart', CHART_ICON));
   }
 }

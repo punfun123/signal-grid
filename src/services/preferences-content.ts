@@ -1,4 +1,4 @@
-import { LANGUAGES, getCurrentLanguageTag, changeLanguage, t } from '@/services/i18n';
+import { LANGUAGES, getCurrentLanguageTag, getFixedInterfaceLanguage, changeLanguage, t } from '@/services/i18n';
 import { getAiFlowSettings, setAiFlowSetting, getStreamQuality, setStreamQuality, STREAM_QUALITY_OPTIONS } from '@/services/ai-flow-settings';
 import { getMapProvider, setMapProvider, MAP_PROVIDER_OPTIONS, MAP_THEME_OPTIONS, getMapTheme, setMapTheme, type MapProvider } from '@/config/basemap';
 import {
@@ -196,9 +196,6 @@ function sectionHeading(label: string): string {
 
 const displaySection: PreferenceSectionSpec = {
   html() {
-    // Compared against LANGUAGES[].code below, which carries full tags (`zh-TW`).
-    // The region-stripped accessor would mark 简体中文 selected for a Traditional reader.
-    const currentLang = getCurrentLanguageTag();
     // The description says what Auto follows, so its segment needs only the short label.
     let html = segmentedHtml('us-theme', t('preferences.theme'), t('preferences.themeDesc'), [
       { value: 'light', label: t('preferences.themeLight') },
@@ -218,15 +215,18 @@ const displaySection: PreferenceSectionSpec = {
       FONT_SCALE_STEPS.map(scale => ({ value: String(scale), label: fontScaleLabel(scale) })),
       String(getFontScale()),
     );
-    html += `<div class="ai-flow-section-label" id="us-language-label">${t('header.languageLabel')}</div>`;
-    html += `<select class="unified-settings-lang-select" id="us-language" aria-labelledby="us-language-label">`;
-    for (const lang of LANGUAGES) {
-      const selected = lang.code === currentLang ? ' selected' : '';
-      html += `<option value="${lang.code}"${selected}>${lang.flag} ${escapeHtml(lang.label)}</option>`;
-    }
-    html += `</select>`;
-    if (currentLang === 'vi') {
-      html += `<div class="ai-flow-toggle-desc">${t('components.languageSelector.mapLabelsFallbackVi')}</div>`;
+    if (!getFixedInterfaceLanguage()) {
+      const currentLang = getCurrentLanguageTag();
+      html += `<div class="ai-flow-section-label" id="us-language-label">${t('header.languageLabel')}</div>`;
+      html += `<select class="unified-settings-lang-select" id="us-language" aria-labelledby="us-language-label">`;
+      for (const lang of LANGUAGES) {
+        const selected = lang.code === currentLang ? ' selected' : '';
+        html += `<option value="${lang.code}"${selected}>${lang.flag} ${escapeHtml(lang.label)}</option>`;
+      }
+      html += `</select>`;
+      if (currentLang === 'vi') {
+        html += `<div class="ai-flow-toggle-desc">${t('components.languageSelector.mapLabelsFallbackVi')}</div>`;
+      }
     }
     html += toggleRowHtml('us-badge-anim', t('components.insights.badgeAnimLabel'), t('components.insights.badgeAnimDesc'), getAiFlowSettings().badgeAnimation);
     return html;

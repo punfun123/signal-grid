@@ -4,7 +4,7 @@ A Community-Powered Global Intelligence Network
 
 The World Never Stops. Stay Connected.
 
-默认入口为全球情报仪表盘，使用深色主题、Global 视图和最近 7 天。地图、面板布局、新闻聚合、直播播放器和自托管 API 继承自 World Monitor。上游版本为 2.11.8，基准提交为 [15db6d39b7a0edff498b9f1417b81d5196d26c3f](https://github.com/koala73/worldmonitor/tree/15db6d39b7a0edff498b9f1417b81d5196d26c3f)。
+网站界面固定为英文。默认入口为全球情报仪表盘，使用深色主题、Global 视图和最近 7 天。地图、面板布局、新闻聚合、直播播放器和自托管 API 继承自 World Monitor。上游版本为 2.11.8，基准提交为 [15db6d39b7a0edff498b9f1417b81d5196d26c3f](https://github.com/koala73/worldmonitor/tree/15db6d39b7a0edff498b9f1417b81d5196d26c3f)。
 
 ## 本地运行
 
@@ -25,8 +25,8 @@ npm run dev -- --host 127.0.0.1
 
 | 配置 | 用途 |
 | --- | --- |
-| `VITE_GRID_CONTRACT_ADDRESS` | 实际 CA。未填时显示 `CA: PENDING` |
-| `VITE_GRID_X_URL` | 官方 X 链接 |
+| `VITE_GRID_CONTRACT_ADDRESS` | 实际合约地址。未填时导航栏显示高亮的 `CA PENDING` 徽标 |
+| `VITE_GRID_X_URL` | 官方 X 链接。图标一直显示，配置地址后可点击 |
 | `VITE_GRID_CHART_URL` | 已确认的代币行情页面。CA 与链接均填入后显示 |
 | `VITE_GRID_PUBLIC_ORIGIN` | 页面 canonical 和分享图片的站点 origin |
 | `VITE_GRID_SOURCE_CODE_URL` | 对应当前运行版本的公开源码仓库或下载地址 |

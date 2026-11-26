@@ -146,42 +146,78 @@ html.wm-pro-banner-reserved .pro-banner-slot {
   white-space: nowrap;
 }
 .grid-token {
+  --grid-token-size: 26px;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding-inline: 8px;
-  border-inline: 1px solid var(--border);
+  flex: none;
+  gap: 5px;
   white-space: nowrap;
   font-family: var(--font-mono, monospace);
-  font-size: 10px;
+  font-size: 11px;
 }
 .grid-token-symbol {
   font-weight: 700;
   color: var(--accent, currentColor);
 }
 .grid-token-address {
-  color: var(--text-secondary, currentColor);
+  display: inline-flex;
+  min-height: var(--grid-token-size);
+  overflow: hidden;
+  border: 1px solid #f4c369;
+  border-radius: 3px;
+  background: color-mix(in srgb, #f4c369 12%, var(--surface));
+  color: var(--text);
+  font-weight: 700;
+}
+.grid-token-address-label,
+.grid-token-address-value {
+  display: grid;
+  place-items: center;
+  padding-inline: 7px;
+}
+.grid-token-address-label {
+  padding-inline: 6px;
+  background: #f4c369;
+  color: #221708;
+}
+.grid-token-address-value {
+  letter-spacing: 0.04em;
 }
 .grid-token-control {
   display: inline-grid;
   place-items: center;
-  width: 22px;
-  height: 22px;
+  flex: none;
+  width: var(--grid-token-size);
+  height: var(--grid-token-size);
   padding: 0;
   background: transparent;
   border: 1px solid var(--border);
-  color: inherit;
+  border-radius: 3px;
+  color: var(--text);
+}
+.grid-token-social {
+  border-color: color-mix(in srgb, var(--text) 30%, var(--border));
+}
+:is(a, button).grid-token-control {
   cursor: pointer;
 }
-.grid-token-control:hover,
+:is(a, button).grid-token-control:hover,
 .grid-token-control[data-copied] {
   border-color: var(--accent, currentColor);
   color: var(--accent, currentColor);
 }
-@media (max-width: 767px) {
+.grid-token-control:focus-visible {
+  outline: 2px solid var(--accent, currentColor);
+  outline-offset: 2px;
+}
+@media (max-width: 768px) {
+  .header:has(.grid-token) { height: auto; min-height: 45px; padding-block: 4px; }
+  .header-left:has(.grid-token) { min-width: 0; flex-wrap: wrap; gap: 4px 6px; }
+  .header:has(.grid-token) .header-right { flex: 0 0 auto; }
   .grid-brand-icon { width: 18px; height: 18px; }
-  .grid-token { gap: 4px; padding-inline: 4px; }
+  .grid-token { gap: 4px; font-size: 10px; }
 }
 @media (max-width: 380px) {
-  .grid-token { font-size: 9px; }
+  .grid-token-address-label,
+  .grid-token-address-value { padding-inline: 5px; }
 }

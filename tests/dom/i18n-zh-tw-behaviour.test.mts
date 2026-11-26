@@ -20,9 +20,10 @@
  * — every one of these fixes is wrong in the other direction as well.
  */
 
-import { beforeAll, describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { getAllCommands } from '@/config/commands';
+import * as desktopRuntime from '@/config/desktop-runtime';
 import { getCurrentLanguage, getCurrentLanguageTag, getLocale } from '@/services/i18n';
 import { renderPreferenceSection } from '@/services/preferences-content';
 import { formatTime } from '@/utils';
@@ -100,7 +101,7 @@ describe('formatTime — relative timestamps on every news item', () => {
   });
 });
 
-describe('language picker — which entry is marked selected', () => {
+describe('desktop language picker — which entry is marked selected', () => {
   /**
    * The marked options, read as attributes.
    *
@@ -111,7 +112,12 @@ describe('language picker — which entry is marked selected', () => {
    * and it is what this renderer actually decides, so assert that directly.
    */
   function markedOptions(): Array<{ value: string; label: string }> {
-    document.body.innerHTML = renderPreferenceSection('display', { isDesktopApp: false }).html;
+    const runtime = vi.spyOn(desktopRuntime, 'hasExplicitDesktopSignals').mockReturnValue(true);
+    try {
+      document.body.innerHTML = renderPreferenceSection('display', { isDesktopApp: true }).html;
+    } finally {
+      runtime.mockRestore();
+    }
     const select = document.querySelector<HTMLSelectElement>('#us-language');
     if (!select) throw new Error('language select missing from preferences markup');
 

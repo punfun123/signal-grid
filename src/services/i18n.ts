@@ -2,6 +2,7 @@ import i18next from 'i18next';
 import LanguageDetector from 'i18next-browser-languagedetector';
 
 import { enqueueSentryCall } from '@/bootstrap/sentry-defer';
+import { hasExplicitDesktopSignals } from '@/config/desktop-runtime';
 import { resolveLanguageTag } from '@/shared/language-tags';
 import { EXPLICIT_LOCALE_KEY, readQueryLanguage, stripQueryLanguage } from '@/utils/i18n-url';
 import { LatestRequestGuard } from '@/utils/latest-request-guard';
@@ -10,12 +11,8 @@ import { LatestRequestGuard } from '@/utils/latest-request-guard';
 // dictionary is loaded through localeModules so it can split like other locales.
 import enShellTranslation from '../locales/en.shell.json';
 
-// Explicit-choice localStorage key. Written ONLY when the user manually picks
-// a language via Settings → Language. The default detector's `i18nextLng`
-// auto-cache is disabled (caches: []) — auto-detected navigator results no
-// longer poison localStorage and override the user's actual browser locale on
-// future visits. Anyone whose browser is French now sees French automatically;
-// the moment they pick another language explicitly, that choice persists here.
+// The desktop detector reads a stored choice only after the user picks a
+// language via Settings → Language. Its navigator result is never cached.
 
 const SUPPORTED_LANGUAGES = ['en', 'bg', 'cs', 'fr', 'de', 'el', 'es', 'hr', 'hu', 'it', 'pl', 'pt', 'nl', 'sv', 'ru', 'uk', 'ar', 'fa', 'zh', 'zh-TW', 'ja', 'ko', 'ro', 'tr', 'th', 'vi', 'hi', 'sw'] as const;
 type SupportedLanguage = typeof SUPPORTED_LANGUAGES[number];
@@ -141,6 +138,10 @@ async function preloadEnglishTranslation(attempt = 0): Promise<void> {
     });
 }
 
+export function getFixedInterfaceLanguage(): 'en' | undefined {
+  return hasExplicitDesktopSignals() ? undefined : 'en';
+}
+
 // Initialize i18n
 export async function initI18n({ waitForFullTranslation = false }: { waitForFullTranslation?: boolean } = {}): Promise<void> {
   if (i18next.isInitialized) {
@@ -157,7 +158,7 @@ export async function initI18n({ waitForFullTranslation = false }: { waitForFull
   // (`wm-locale-explicit`) is preserved untouched.
   try { localStorage.removeItem('i18nextLng'); } catch { /* private mode */ }
 
-  // Custom detectors:
+  // Custom detectors for the desktop interface:
   // - wmQuery honors shareable application-language URLs such as
   //   /dashboard?lang=fa. These remain base-canonical and are not advertised
   //   as separately indexable hreflang documents.
@@ -184,6 +185,7 @@ export async function initI18n({ waitForFullTranslation = false }: { waitForFull
   await i18next
     .use(detector)
     .init({
+      lng: getFixedInterfaceLanguage(),
       resources: {
         en: { translation: enShellTranslation as TranslationDictionary },
       },
@@ -221,7 +223,7 @@ export function t(key: string, options?: Record<string, unknown>): string {
   return i18next.t(key, options);
 }
 
-// Helper to change language. Persists to the explicit-choice key so the
+// Change the desktop interface language. Persists to the explicit-choice key so the
 // detector picks it up on next load instead of falling through to navigator.
 //
 // To revert to navigator-based auto-detection later (e.g. a future
@@ -230,6 +232,8 @@ export function t(key: string, options?: Record<string, unknown>): string {
 // initI18n() will fall through `wmExplicit` and detect from navigator.
 // We deliberately don't ship that helper now since no UI consumes it.
 export async function changeLanguage(lng: string): Promise<boolean> {
+  if (getFixedInterfaceLanguage()) return false;
+
   const request = languageChangeGuard.begin();
   const normalized = await ensureLanguageLoaded(lng);
   if (!languageChangeGuard.isCurrent(request)) return false;

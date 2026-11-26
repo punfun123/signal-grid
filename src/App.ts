@@ -122,7 +122,7 @@ import { isDesktopRuntime, waitForSidecarReady } from '@/services/runtime';
 import { hasPremiumAccess } from '@/services/panel-gating';
 import { track, trackEvent, trackDeeplinkOpened, initAuthAnalytics, trackMapViewChange } from '@/services/analytics';
 import { preloadCountryGeometry, isCountryGeometryLoaded, getCountryNameByCode } from '@/services/country-geometry';
-import { getCurrentLanguage, initI18n, t, I18N_RESOURCES_LOADED_EVENT, type I18nResourcesLoadedDetail } from '@/services/i18n';
+import { getCurrentLanguage, getFixedInterfaceLanguage, initI18n, t, I18N_RESOURCES_LOADED_EVENT, type I18nResourcesLoadedDetail } from '@/services/i18n';
 import { initDeferredDashboardFonts } from '@/bootstrap/secondary-startup';
 import { applyFontScale, FONT_SCALE_STORAGE_KEY } from '@/services/font-scale-settings';
 
@@ -3480,6 +3480,9 @@ export class App {
   }
 
   private currentSourceCapLanguage(): string {
+    const fixedLanguage = getFixedInterfaceLanguage();
+    if (fixedLanguage) return fixedLanguage;
+
     let explicitLocale = '';
     try { explicitLocale = localStorage.getItem('wm-locale-explicit') || ''; } catch { /* private mode */ }
     return ((explicitLocale || navigator.language || 'en').split('-')[0] ?? 'en').toLowerCase();
