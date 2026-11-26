@@ -16,6 +16,6 @@ function httpsUrl(value: string | undefined): string {
 const env = import.meta.env;
 const ca = env?.VITE_GRID_CONTRACT_ADDRESS?.trim() ?? '';
 export const TOKEN_CA = /^[a-zA-Z0-9]{20,128}$/.test(ca) ? ca : '';
-export const X_URL = httpsUrl(env?.VITE_GRID_X_URL);
+export const X_URL = httpsUrl(env?.VITE_GRID_X_URL) || 'https://x.com/SignalGridLive';
 export const TOKEN_CHART_URL = TOKEN_CA ? httpsUrl(env?.VITE_GRID_CHART_URL) : '';
 export const SOURCE_CODE_URL = httpsUrl(env?.VITE_GRID_SOURCE_CODE_URL) || '/source/index.html';
