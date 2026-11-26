@@ -1320,7 +1320,7 @@ export class PanelLayoutManager implements AppModule {
               <span class="variant-label">Good News</span>
             </a>`;
       })()}</div>
-          <img class="grid-brand-icon" src="/brand/icon.svg" width="23" height="23" alt="" />
+          <img class="grid-brand-icon" src="/brand/mascot.png" width="23" height="23" alt="" />
           <span class="logo">${PROJECT_NAME}</span><span class="logo-mobile">${PROJECT_NAME}</span><span class="version">v${__APP_VERSION__}</span>${BETA_MODE ? '<span class="beta-badge">BETA</span>' : ''}
           <div class="grid-token" data-grid-token></div>
           <button class="mobile-settings-btn" id="mobileSettingsBtn" title="${t('header.settings')}" aria-label="${t('header.settings')}">

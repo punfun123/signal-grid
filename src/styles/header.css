@@ -141,6 +141,7 @@ html.wm-pro-banner-reserved .pro-banner-slot {
 .grid-brand-icon {
   display: block;
   flex: none;
+  border-radius: 3px;
 }
 .header .logo-mobile {
   white-space: nowrap;

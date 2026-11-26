@@ -571,6 +571,7 @@ import { installFetchFailureAttribution } from '@/services/fetch-failure-attribu
 import { installRuntimeFetchPatch, installWebApiRedirect } from '@/services/runtime';
 import { primeBootstrapFastTier } from '@/services/bootstrap-prefetch';
 import { isDesktopRuntime } from '@/services/desktop-runtime';
+import { IS_GRID_PUBLIC_WEB } from '@/config/grid-profile';
 import { loadDesktopSecrets } from '@/services/runtime-config';
 import { applyStoredTheme } from '@/utils/theme-manager';
 import { applyDeviceTierClass } from '@/utils/device-tier';
@@ -655,8 +656,10 @@ window.addEventListener('storage', (event) => {
 // Set data-variant on <html> so CSS theme overrides activate
 if (SITE_VARIANT && SITE_VARIANT !== 'full') {
   document.documentElement.dataset.variant = SITE_VARIANT;
+}
 
-  // Swap favicons to variant-specific versions before browser finishes fetching defaults
+if (!IS_GRID_PUBLIC_WEB && SITE_VARIANT && SITE_VARIANT !== 'full') {
+  // Desktop editions keep their variant icons. The public site shares one mark across views.
   document.querySelectorAll<HTMLLinkElement>('link[rel="icon"], link[rel="apple-touch-icon"]').forEach(link => {
     link.href = link.href
       .replace(/\/favico\/android-chrome-96x96\.png$/, `/favico/${SITE_VARIANT}/android-chrome-192x192.png`)

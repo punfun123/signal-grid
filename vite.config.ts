@@ -315,9 +315,8 @@ function htmlVariantPlugin(activeMeta: VariantMeta, activeVariant: string, isDes
           );
       }
 
-      // Desktop builds: replace favicon paths with variant-specific subdirectory.
-      // Web builds use 'full' favicons in HTML; runtime JS swaps them per hostname.
-      if (activeVariant !== 'full') {
+      // Desktop editions use variant-specific icons. Public views share the SIGNAL GRID brand.
+      if (isDesktopBuild && activeVariant !== 'full') {
         result = result
           .replace(
             /<link rel="icon" type="image\/png" sizes="96x96" href="\/favico\/android-chrome-96x96\.png" \/>/g,
