@@ -1,4 +1,5 @@
-import { isGridPanelAvailable } from '@/config/grid-panels';
+import { isGridPanelAvailable, WEB_PREMIUM_PANELS } from '@/config/grid-panels';
+import { IS_GRID_PUBLIC_WEB } from '@/config/grid-profile';
 import { PROJECT_NAME, SOURCE_CODE_URL, UPSTREAM_URL } from '@/config/brand.config';
 import { mountGridTokenControls } from './grid-header';
 import { readChunkModule } from '@/bootstrap/chunk-reload';
@@ -212,37 +213,6 @@ function writeSessionStorageValue(key: string, value: string): void {
     // Banner dismissal remains functional for this render even without persistence.
   }
 }
-
-/**
- * Panels that require premium access on web. Auth-based gating applies to
- * these — `updatePanelGating()` calls `Panel.showGatedCta()` to render
- * "Sign In to Unlock" / "Upgrade to Pro" for non-premium users.
- *
- * INVARIANT: every panel listed in `apiKeyPanels` (src/config/panels.ts
- * `isPanelEntitled`) MUST appear here. If it's API-key-entitled but missing
- * from this set, anonymous/free-Clerk users see the panel mount and run
- * its loader (which writes empty/loading/error UI directly into the body)
- * instead of the lock CTA. The PRO badge in the title still renders, so
- * the symptom is "PRO badge + panel-internal loading or empty copy"
- * which looks broken (e.g. Regional Intelligence rendering its empty-state
- * "is being refreshed" message to anonymous users — see todo #257 item 8).
- *
- * The static test in tests/panel-config-guardrails.test.mjs enforces
- * `apiKeyPanels ⊆ WEB_PREMIUM_PANELS` so this drift can't recur silently.
- */
-const WEB_PREMIUM_PANELS = new Set([
-  'stock-analysis',
-  'stock-backtest',
-  'daily-market-brief',
-  'market-implications',
-  'deduction',
-  'chat-analyst',
-  'wsb-ticker-scanner',
-  'latest-brief',
-  'regional-intelligence',
-  'trade-policy',
-  'global-procurement',
-]);
 
 /**
  * Panels that require a Clerk-authenticated PRO account specifically.
@@ -871,7 +841,7 @@ export class PanelLayoutManager implements AppModule {
     // a pending-onboarding marker should open the interstitial (or surface the
     // finish-setup chip). Deferred off the boot critical path like the panel
     // hydration scheduler above.
-    this.proActivationController.init();
+    if (!IS_GRID_PUBLIC_WEB) this.proActivationController.init();
     // Passkey offer: subscribes to auth and evaluates on a genuine sign-in.
     // Registered after the Pro controller so the activation interstitial —
     // which is a focus trap — wins the crowded post-sign-in moment; the offer
@@ -1278,15 +1248,16 @@ export class PanelLayoutManager implements AppModule {
     });
     const referenceLinksHtml = dashboardReferenceAnchorsHtml(referenceOrigin);
     const pricingHref = `${referenceOrigin}/pro#pricing`;
-    const externalSiteLinksHtml = DASHBOARD_EXTERNAL_SITE_LINKS.map(({ label, href }) => (
-      `<a href="${href}" target="_blank" rel="noopener">${label}</a>`
-    )).join('');
+    const externalSiteLinksHtml = DASHBOARD_EXTERNAL_SITE_LINKS
+      .filter(({ label }) => !IS_GRID_PUBLIC_WEB || label !== 'X')
+      .map(({ label, href }) => `<a href="${href}" target="_blank" rel="noopener">${label}</a>`)
+      .join('');
 
     markLcpDebug('wm:layout:render-start');
     document.documentElement.classList.add('wm-layout-hydrated');
     setTrustedHtml(this.ctx.container, trustedHtml(`
       <a href="#main" class="skip-link">Skip to main content</a>
-      <div class="header" role="banner">
+      <div class="header${IS_GRID_PUBLIC_WEB ? ' header-grid-public' : ''}" role="banner">
         <div class="header-left">
           <div class="variant-switcher">${(() => {
         const local = true;
@@ -1431,14 +1402,14 @@ export class PanelLayoutManager implements AppModule {
           <span class="mobile-menu-item-icon">${getCurrentTheme() === 'dark' ? '☀️' : '🌙'}</span>
           <span class="mobile-menu-item-label">${getCurrentTheme() === 'dark' ? 'Light Mode' : 'Dark Mode'}</span>
         </button>
-        <a class="mobile-menu-item" href="https://x.com/eliehabib" target="_blank" rel="noopener">
+        ${IS_GRID_PUBLIC_WEB ? '' : `<a class="mobile-menu-item" href="https://x.com/eliehabib" target="_blank" rel="noopener">
           <span class="mobile-menu-item-icon"><svg class="x-logo" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg></span>
           <span class="mobile-menu-item-label">@eliehabib</span>
-        </a>
+        </a>`}
         <div class="mobile-menu-divider"></div>
         <div class="mobile-menu-footer-links">
           ${referenceLinksHtml}
-          <a href="${pricingHref}" target="_blank" rel="noopener">Pricing</a>
+          ${IS_GRID_PUBLIC_WEB ? '' : `<a href="${pricingHref}" target="_blank" rel="noopener">Pricing</a>`}
           ${externalSiteLinksHtml}
         </div>
         <div class="mobile-menu-version">v${__APP_VERSION__}</div>
@@ -1532,15 +1503,15 @@ export class PanelLayoutManager implements AppModule {
     const switcher = this.ctx.container.querySelector('.variant-switcher');
     const headerLeft = this.ctx.container.querySelector('.header-left');
     const tabletMount = this.ctx.container.querySelector('.tablet-variant-mount');
-    const tabletWidth = window.matchMedia('(min-width: 768px) and (max-width: 980px)');
+    const compactWidth = window.matchMedia(`(min-width: 768px) and (max-width: ${IS_GRID_PUBLIC_WEB ? 1375 : 980}px)`);
     const placeSwitcher = () => {
       if (!switcher || !headerLeft || !tabletMount) return;
-      if (tabletWidth.matches) tabletMount.append(switcher);
+      if (compactWidth.matches) tabletMount.append(switcher);
       else headerLeft.prepend(switcher);
     };
     placeSwitcher();
-    tabletWidth.addEventListener('change', placeSwitcher);
-    this.variantPlacementCleanup = () => tabletWidth.removeEventListener('change', placeSwitcher);
+    compactWidth.addEventListener('change', placeSwitcher);
+    this.variantPlacementCleanup = () => compactWidth.removeEventListener('change', placeSwitcher);
     // Mark AFTER the innerHTML swap so the timestamp reflects when the new shell
     // DOM is actually live — placing it before setTrustedHtml recorded a time
     // earlier than any LCP candidate in the new shell, making it useless for
@@ -1643,7 +1614,7 @@ export class PanelLayoutManager implements AppModule {
         onUpdateTab: () => this.updateActiveTabFromTeam(),
         onStopSharing: (id) => { void this.stopSharingTeamDashboard(id); },
       },
-      focus: {
+      focus: IS_GRID_PUBLIC_WEB ? undefined : {
         isFocused: () => !!this.activeTab()?.scope,
         onClick: () => this.openFocusEditor('tabs'),
       },
@@ -2718,7 +2689,7 @@ export class PanelLayoutManager implements AppModule {
       // Only a would-be-capped user pays for the catalog probe; the cap stays
       // inactive until Pro Business is provably purchasable, so the limit and
       // the tier flip together (R10). Single-flight and shared with U5.
-      if (verdict.pendingActivation) {
+      if (!IS_GRID_PUBLIC_WEB && verdict.pendingActivation) {
         void primeExportGateActivation().then((active) => {
           if (active && !this.ctx.isDestroyed) this.updateTabCapLock();
         });
@@ -2800,6 +2771,7 @@ export class PanelLayoutManager implements AppModule {
 
     const next: Record<string, PanelConfig> = {};
     for (const [key, config] of Object.entries(panelSettings)) {
+      if (IS_GRID_PUBLIC_WEB && !isGridPanelAvailable(key)) continue;
       next[key] = { ...config };
     }
     // Carry over panels missing from the snapshot: dynamic panels (custom
@@ -2808,6 +2780,7 @@ export class PanelLayoutManager implements AppModule {
     // panels added to the app since the snapshot seed from variant defaults
     // (same formula as the App.ts settings merge).
     for (const [key, config] of Object.entries(this.ctx.panelSettings)) {
+      if (IS_GRID_PUBLIC_WEB && !isGridPanelAvailable(key)) continue;
       if (next[key]) continue;
       if (isDynamicPanel(key)) {
         next[key] = { ...config };
@@ -3172,6 +3145,7 @@ export class PanelLayoutManager implements AppModule {
    * content re-renders never touch it.
    */
   private syncMissionPreview(key: string, panel: Panel, activeMissionId?: string | null): void {
+    if (IS_GRID_PUBLIC_WEB) return;
     const missionId = activeMissionId !== undefined ? activeMissionId : (loadStoredMissionPreset()?.id ?? null);
     syncPanelPreview(
       this.missionPreviews,
@@ -4030,7 +4004,7 @@ export class PanelLayoutManager implements AppModule {
       );
     }
 
-    for (const spec of loadMcpPanels()) {
+    for (const spec of IS_GRID_PUBLIC_WEB ? [] : loadMcpPanels()) {
       if (!this.ctx.panelSettings[spec.id]) {
         this.ctx.panelSettings[spec.id] = { name: spec.title, enabled: true, priority: 3 };
       }

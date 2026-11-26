@@ -1,6 +1,8 @@
 import type { PanelConfig } from '@/types';
 import { SITE_VARIANT } from '@/config/variant';
 import { ALL_PANELS } from '@/config/panels';
+import { isGridPanelAvailable } from '@/config/grid-panels';
+import { IS_GRID_PUBLIC_WEB } from '@/config/grid-profile';
 import { isDynamicPanel, resetMissionPresetState } from '@/services/mission-presets';
 import { safeStorageGet, safeStorageRemove, safeStorageSet } from '@/utils/safe-storage';
 import { normalizeScope, type TabScope } from '../../shared/tab-scope';
@@ -84,6 +86,13 @@ export function normalizeTabsState(parsed: unknown): TabsState | null {
     && !!t.panelSettings && typeof t.panelSettings === 'object'
     && Array.isArray(t.panelOrder) && Array.isArray(t.bottomSet));
   if (tabs.length === 0) return null;
+  if (IS_GRID_PUBLIC_WEB) {
+    for (const tab of tabs) {
+      tab.panelSettings = Object.fromEntries(Object.entries(tab.panelSettings).filter(([key]) => isGridPanelAvailable(key)));
+      tab.panelOrder = tab.panelOrder.filter(key => typeof key === 'string' && isGridPanelAvailable(key));
+      tab.bottomSet = tab.bottomSet.filter(key => typeof key === 'string' && isGridPanelAvailable(key));
+    }
+  }
   for (const tab of tabs) {
     const team = tab.team as unknown;
     if (team === undefined) continue;
@@ -171,6 +180,7 @@ export function normalizeNewTabPanels(parsed: unknown): NewTabPanels | null {
     if (!entry || typeof entry !== 'object') continue;
     const { key, on } = entry as Partial<NewTabPanelChoice>;
     if (typeof key !== 'string' || key === '' || typeof on !== 'boolean' || seen.has(key)) continue;
+    if (IS_GRID_PUBLIC_WEB && !isGridPanelAvailable(key)) continue;
     seen.add(key);
     out.push({ key, on });
   }

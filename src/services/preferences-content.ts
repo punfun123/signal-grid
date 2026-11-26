@@ -1,4 +1,5 @@
 import { LANGUAGES, getCurrentLanguageTag, getFixedInterfaceLanguage, changeLanguage, t } from '@/services/i18n';
+import { IS_GRID_PUBLIC_WEB } from '@/config/grid-profile';
 import { getAiFlowSettings, setAiFlowSetting, getStreamQuality, setStreamQuality, STREAM_QUALITY_OPTIONS } from '@/services/ai-flow-settings';
 import { getMapProvider, setMapProvider, MAP_PROVIDER_OPTIONS, MAP_THEME_OPTIONS, getMapTheme, setMapTheme, type MapProvider } from '@/config/basemap';
 import {
@@ -483,7 +484,7 @@ const videoSection: PreferenceSectionSpec = {
 };
 
 function showsCloudSync(host: PreferencesHost): boolean {
-  return !host.isDesktopApp && host.isSignedIn === true && isCloudSyncEnabled();
+  return !IS_GRID_PUBLIC_WEB && !host.isDesktopApp && host.isSignedIn === true && isCloudSyncEnabled();
 }
 
 const syncSection: PreferenceSectionSpec = {
@@ -505,7 +506,7 @@ const syncSection: PreferenceSectionSpec = {
         <button type="button" class="btn btn-secondary wm-sync-now-btn" id="usSyncNowBtn">Sync now</button>
       </div>`;
     }
-    html += sectionHeading(t('preferences.dataAndCommunity'));
+    if (!IS_GRID_PUBLIC_WEB) html += sectionHeading(t('preferences.dataAndCommunity'));
     html += `
       <div class="us-data-mgmt">
         <button type="button" class="btn btn-secondary" id="usExportBtn">${t('components.settings.exportSettings')}</button>

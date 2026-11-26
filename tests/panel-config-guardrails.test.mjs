@@ -822,8 +822,9 @@ describe('panel-config guardrails', () => {
     const apiKeyPanels = [...apiKeyPanelsMatch[1].matchAll(QUOTED)].map(m => m[1]);
     assert.ok(apiKeyPanels.length > 0, 'apiKeyPanels parse returned no entries');
 
-    const webPremiumMatch = panelLayoutSrc.match(/const WEB_PREMIUM_PANELS = new Set\(\[([\s\S]*?)\]\);/);
-    assert.ok(webPremiumMatch, 'WEB_PREMIUM_PANELS not found in panel-layout.ts');
+    const gridPanelsSrc = readFileSync(resolve(__dirname, '../src/config/grid-panels.ts'), 'utf-8');
+    const webPremiumMatch = gridPanelsSrc.match(/const WEB_PREMIUM_PANELS = new Set\(\[([\s\S]*?)\]\);/);
+    assert.ok(webPremiumMatch, 'WEB_PREMIUM_PANELS not found in grid-panels.ts');
     const webPremium = new Set([...webPremiumMatch[1].matchAll(QUOTED)].map(m => m[1]));
     assert.ok(webPremium.size > 0, 'WEB_PREMIUM_PANELS parse returned no entries');
 
@@ -832,8 +833,7 @@ describe('panel-config guardrails', () => {
       orphans,
       [],
       `apiKeyPanels members missing from WEB_PREMIUM_PANELS: ${orphans.join(', ')}\n` +
-      `Add these keys to src/app/panel-layout.ts WEB_PREMIUM_PANELS so anonymous/free users see the\n` +
-      `"Sign In to Unlock" CTA instead of the panel's own internal loading/empty/error state.`,
+      `Add these keys to src/config/grid-panels.ts WEB_PREMIUM_PANELS so the public catalog excludes them.`,
     );
   });
 

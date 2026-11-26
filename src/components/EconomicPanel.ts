@@ -140,7 +140,6 @@ export class EconomicPanel extends Panel {
   private spendingData: SpendingSummary | null = null;
   private bisData: BisData | null = null;
   private stressData: GetEconomicStressResponse | null = null;
-  private lastUpdate: Date | null = null;
   private activeTab: TabId = 'indicators';
   private fredState: FredLoadState = 'loading';
   private fredErrorMsg = '';
@@ -165,7 +164,6 @@ export class EconomicPanel extends Panel {
     this.fredData = data;
     this.fredState = 'ok';
     this.fredErrorMsg = '';
-    this.lastUpdate = new Date();
     this.render();
   }
 
@@ -261,17 +259,13 @@ export class EconomicPanel extends Panel {
         break;
     }
 
-    const updateTime = this.lastUpdate
-      ? this.lastUpdate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-      : '';
-
     this.setSafeContent(unsafeRawHtml(`
       ${tabsHtml}
       <div class="economic-content">
         ${contentHtml}
       </div>
       <div class="economic-footer">
-        <span class="economic-source">${this.getSourceLabel()} • ${updateTime}</span>
+        <span class="economic-source">${this.getSourceLabel()}</span>
       </div>
     `, 'legacy Panel.setContent() migration'));
   }
@@ -523,14 +517,15 @@ export class EconomicPanel extends Panel {
   private renderStress(): string {
     const d = this.stressData;
     if (!d || d.unavailable || !Number.isFinite(d.compositeScore)) {
-      return `<div class="economic-empty">Stress index data unavailable</div>`;
+      return `<div class="economic-empty">Stress index temporarily unavailable.</div>`;
     }
 
     const color = stressScoreColor(d.compositeScore);
     const needlePct = Math.min(100, Math.max(0, d.compositeScore)).toFixed(1);
     const cards = d.components.map((c) => stressComponentCard(c)).join('');
-    const updatedNote = d.seededAt
-      ? `<div style="font-size:calc(9px * var(--wm-panel-effective-scale, 1));color:var(--text-dim);text-align:right;margin-top:8px">Updated ${new Date(d.seededAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</div>`
+    const updatedAt = Date.parse(d.seededAt);
+    const updatedNote = Number.isFinite(updatedAt)
+      ? `<div style="font-size:calc(9px * var(--wm-panel-effective-scale, 1));color:var(--text-dim);text-align:right;margin-top:8px">Last updated ${new Date(updatedAt).toISOString().slice(0, 10)}</div>`
       : '';
 
     return `<div style="padding:12px 0">

@@ -18,6 +18,7 @@ import { isFeatureAvailable } from '@/services/runtime-config';
 import { isDesktopRuntime } from '@/services/runtime';
 import { getAuthState, subscribeAuthState } from '@/services/auth-state';
 import { hasPremiumAccess } from '@/services/panel-gating';
+import { IS_GRID_PUBLIC_WEB } from '@/config/grid-profile';
 import { trackGateHit } from '@/services/analytics';
 import { runScenario, getScenarioStatus } from '@/services/scenario';
 import { setTrustedHtml, trustedHtml } from '@/utils/dom-utils';
@@ -541,7 +542,7 @@ export class SupplyChainPanel extends Panel {
         // Render the chart placeholder only when expanded AND upstream reported
         // data available for this chokepoint. If dataAvailable === false, the
         // per-id history key would also be zero (we skip the lazy-fetch).
-        const chartPlaceholder = expanded && ts?.dataAvailable !== false
+        const chartPlaceholder = !IS_GRID_PUBLIC_WEB && expanded && ts?.dataAvailable !== false
           ? `<div data-chart-cp="${escapeHtml(cp.name)}" data-chart-cp-id="${escapeHtml(cp.id)}" style="margin-top:8px;min-height:200px;display:flex;align-items:center;justify-content:center;color:var(--text-dim,#888);font-size:calc(12px * var(--wm-panel-effective-scale, 1))">${t('components.supplyChain.loadingHistory') || 'Loading transit history\u2026'}</div>`
           : '';
 
@@ -562,11 +563,11 @@ export class SupplyChainPanel extends Panel {
         };
         const warRiskBadge = `<span class="sc-war-risk-badge sc-war-risk-badge--${tierClass[tier] ?? 'normal'}">${tierLabel[tier] ?? 'Normal'}</span>`;
 
-        const bypassSection = expanded
+        const bypassSection = !IS_GRID_PUBLIC_WEB && expanded
           ? `<div class="sc-bypass-section" data-bypass-cp="${escapeHtml(cp.id)}"><div class="sc-bypass-heading">Bypass Options</div><div class="sc-bypass-loading">Loading bypass options\u2026</div></div>`
           : '';
 
-        const scenarioSection = expanded ? (() => {
+        const scenarioSection = !IS_GRID_PUBLIC_WEB && expanded ? (() => {
           const template = SCENARIO_TEMPLATES.find(tmpl =>
             tmpl.affectedChokepointIds.includes(cp.id) && tmpl.type !== 'tariff_shock'
           );
@@ -987,7 +988,7 @@ export class SupplyChainPanel extends Panel {
     // (#6439) and the loader skips the fetch. The free deposits table above is
     // a genuine fallback, not an error, so the only addition is a line naming
     // what the upgrade buys.
-    const productionUpsell = hasPremiumAccess(getAuthState())
+    const productionUpsell = IS_GRID_PUBLIC_WEB || hasPremiumAccess(getAuthState())
       ? ''
       : `<p class="sc-mineral-caption">${escapeHtml(t('components.supplyChain.productionProLocked'))}</p>`;
 

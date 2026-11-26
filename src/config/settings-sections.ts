@@ -10,6 +10,7 @@
 
 /** A plain snapshot the shell reads before every navigation event. */
 export interface SettingsFacts {
+  readonly publicWeb: boolean;
   readonly signedIn: boolean;
   /** isClerkAuthEnabled(). A build without a Clerk key offers no sign-in row. */
   readonly canSignIn: boolean;
@@ -159,11 +160,15 @@ export function isPreferenceSection(id: SettingsSectionId): id is PreferenceSect
   return SECTIONS.get(id)?.owner === 'preferences';
 }
 
-export function sectionLabelKey(id: SettingsSectionId): string {
+export function sectionLabelKey(id: SettingsSectionId, publicWeb = false): string {
+  if (id === 'sync' && publicWeb) return 'settings.sections.importExport';
   return SECTIONS.get(id)?.labelKey ?? id;
 }
 
+const NON_PUBLIC_SECTIONS = new Set<SettingsSectionId>(['account', 'notifications', 'api-keys', 'embeds']);
+
 export function isAvailable(id: SettingsSectionId, f: SettingsFacts): boolean {
+  if (f.publicWeb && NON_PUBLIC_SECTIONS.has(id)) return false;
   const def = SECTIONS.get(id);
   return def !== undefined && (def.available?.(f) ?? true);
 }
@@ -197,13 +202,13 @@ export function buildNav(f: SettingsFacts): readonly NavGroup[] {
         rows.push({
           kind: 'section',
           id,
-          labelKey: def.labelKey,
+          labelKey: sectionLabelKey(id, f.publicWeb),
           descKey: def.descKey ?? null,
           badge: def.badge ?? null,
           summary: def.summary?.(f) ?? null,
           keywordsKey: def.keywordsKey,
         });
-      } else if (def.whenUnavailable === 'sign-in-row' && f.canSignIn) {
+      } else if (!f.publicWeb && def.whenUnavailable === 'sign-in-row' && f.canSignIn) {
         rows.push({ kind: 'sign-in' });
       }
     }

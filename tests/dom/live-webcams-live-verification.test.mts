@@ -407,7 +407,7 @@ describe('Live Webcams live verification', () => {
     mountOnScreen();
 
     const configured = Object.values(catalog.sources).filter((entries) => entries.length > 0).length;
-    expect(internals().element.querySelector('.panel-live-count')?.textContent).toBe(String(configured));
+    expect(internals().element.querySelector('.panel-media-count')?.textContent).toBe(`${configured} cameras`);
 
     click('.webcam-view-btn[data-mode="single"]');
     const switcher = Array.from(content().querySelectorAll('.webcam-feed-btn')).map((button) => button.textContent);

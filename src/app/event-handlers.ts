@@ -120,6 +120,7 @@ import { getPanelDisplayName } from '@/services/panel-display-name';
 import { TvModeController } from '@/services/tv-mode';
 import { getAuthState, subscribeAuthState } from '@/services/auth-state';
 import { hasEmbedAccessForAccount, onEntitlementChange } from '@/services/entitlements';
+import { IS_GRID_PUBLIC_WEB } from '@/config/grid-profile';
 import { evaluateAvailableExportFormats, evaluateExportGate, exportLockToGateReason } from '@/services/gates/export';
 import { primeExportGateActivation } from '@/services/gates/export-resolver';
 import type { DataExportFormat } from '@/services/gates/export-resolver';
@@ -1127,7 +1128,9 @@ export class EventHandlerManager implements AppModule {
     declareOverlay(popover, { reload: 'safe' });
     popover.tabIndex = -1;
 
-    const cards = getMissionPresetsForVariant(SITE_VARIANT).map((preset) => {
+    const presets = getMissionPresetsForVariant(SITE_VARIANT)
+      .filter(preset => !IS_GRID_PUBLIC_WEB || !preset.requiresFocus);
+    const cards = presets.map((preset) => {
       const selected = active?.id === preset.id;
       return `
         <button
@@ -1364,6 +1367,7 @@ export class EventHandlerManager implements AppModule {
 
   private applyMissionPreset(presetId: MissionPresetId, source: 'user' | 'agent' = 'user'): boolean {
     const focusPreset = getMissionPreset(presetId);
+    if (IS_GRID_PUBLIC_WEB && focusPreset?.requiresFocus) return false;
     const canFocus = this.callbacks.canUseFocus?.() === true;
     if (focusPreset?.requiresFocus && !canFocus) {
       // Refused before anything changes: the layout, the stored preset and the
@@ -1807,15 +1811,14 @@ export class EventHandlerManager implements AppModule {
     // supported product surface, not a trial, so it is never gated here.
     tiers.appendChild(this.buildEmbedTier({
       id: 'embedSnippetTextarea',
-      title: 'Free — no key needed',
-      detail: 'Conflicts, earthquakes and weather, refreshed hourly. Anyone can publish this, '
-        + 'signed in or not.',
+      title: IS_GRID_PUBLIC_WEB ? 'Map embed' : 'Free — no key needed',
+      detail: 'Conflicts, earthquakes and weather, refreshed hourly.',
       snippet,
     }));
 
     // The keyed tier is offered only to an account that can actually mint a
     // key. Showing it to everyone else would be an upsell wearing a snippet.
-    if (hasEmbedAccessForAccount(getAuthState().user?.role)) {
+    if (!IS_GRID_PUBLIC_WEB && hasEmbedAccessForAccount(getAuthState().user?.role)) {
       const state = this.ctx.map?.getState();
       tiers.appendChild(this.buildEmbedTier({
         id: 'embedKeyedSnippetTextarea',
@@ -2344,13 +2347,13 @@ export class EventHandlerManager implements AppModule {
       const authState = getAuthState();
       const verdict = evaluateExportGate(authState);
       if (verdict.locked) {
-        showLocked(exportLockToGateReason(verdict.reason));
+        if (!IS_GRID_PUBLIC_WEB) showLocked(exportLockToGateReason(verdict.reason));
         return;
       }
       // Only a would-be-locked user pays for the catalog probe; the gate stays
       // inactive (export available) until it proves Pro Business is
       // purchasable, so the takeaway and the tier flip together (R10).
-      if (verdict.pendingActivation) {
+      if (!IS_GRID_PUBLIC_WEB && verdict.pendingActivation) {
         void primeExportGateActivation().then((active) => {
           if (active) applyGate();
         });
@@ -2368,6 +2371,12 @@ export class EventHandlerManager implements AppModule {
       removeLockedControl();
       liveRegion.remove();
     });
+  }
+
+  private sourceLimitMessage(): string {
+    return IS_GRID_PUBLIC_WEB
+      ? `You can enable up to ${FREE_MAX_SOURCES} sources. Turn one off to add another.`
+      : t('modals.settingsWindow.freeSourceLimit', { max: String(FREE_MAX_SOURCES) });
   }
 
   setupUnifiedSettings(): void {
@@ -2402,7 +2411,7 @@ export class EventHandlerManager implements AppModule {
           const allSources = this.getAllSourceNames();
           const currentlyEnabled = allSources.filter(n => !this.ctx.disabledSources.has(n)).length;
           if (currentlyEnabled + 1 > FREE_MAX_SOURCES) {
-            showToast(t('modals.settingsWindow.freeSourceLimit', { max: String(FREE_MAX_SOURCES) }), 3000);
+            showToast(this.sourceLimitMessage(), 3000);
             return;
           }
         }
@@ -2419,7 +2428,7 @@ export class EventHandlerManager implements AppModule {
           const currentlyEnabled = allSources.filter(n => !this.ctx.disabledSources.has(n)).length;
           const wouldEnable = names.filter(n => this.ctx.disabledSources.has(n) && allSources.includes(n)).length;
           if (currentlyEnabled + wouldEnable > FREE_MAX_SOURCES) {
-            showToast(t('modals.settingsWindow.freeSourceLimit', { max: String(FREE_MAX_SOURCES) }), 3000);
+            showToast(this.sourceLimitMessage(), 3000);
             return;
           }
         }

@@ -11,19 +11,19 @@ import {
   DASHBOARD_REFERENCE_LINKS,
 } from '../config/dashboard-reference-links';
 
-export function dashboardSiteLinksHtml(origin: string): string {
+export function dashboardSiteLinksHtml(origin: string, publicWeb = false): string {
   const base = origin.replace(/\/$/, '');
   const reference = DASHBOARD_REFERENCE_LINKS.map(({ label, path }) => (
     `<a class="dashboard-site-links-item" href="${escapeHtml(`${base}${path}`)}"`
     + ` target="_blank" rel="noopener noreferrer">${escapeHtml(label)}</a>`
   )).join('');
-  const pricing = `<a class="dashboard-site-links-item" href="${escapeHtml(`${base}/pro#pricing`)}"`
+  const pricing = publicWeb ? '' : `<a class="dashboard-site-links-item" href="${escapeHtml(`${base}/pro#pricing`)}"`
     + ` target="_blank" rel="noopener noreferrer">Pricing</a>`;
-  const external = DASHBOARD_EXTERNAL_SITE_LINKS.map(({ label, href }) => (
+  const external = DASHBOARD_EXTERNAL_SITE_LINKS.filter(({ label }) => !publicWeb || label !== 'X').map(({ label, href }) => (
     `<a class="dashboard-site-links-item" href="${escapeHtml(href)}"`
     + ` target="_blank" rel="noopener noreferrer">${escapeHtml(label)}</a>`
   )).join('');
-  return `<nav aria-label="World Monitor site" class="dashboard-site-links-row">`
+  return `<nav aria-label="${publicWeb ? 'Site links' : 'World Monitor site'}" class="dashboard-site-links-row">`
     + `${reference}${pricing}${external}</nav>`;
 }
 

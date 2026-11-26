@@ -1,5 +1,8 @@
 import type { Monitor, PanelConfig, MapLayers } from '@/types';
 import { WEB_APP_ORIGIN } from '@/config/web-origin';
+import { IS_GRID_PUBLIC_WEB } from '@/config/grid-profile';
+import { isGridPanelAvailable } from '@/config/grid-panels';
+import { applyGridPublicPanelDefaults } from '@/config/panels';
 import {
   isStockResearchPath,
   stockResearchSymbolFromPath,
@@ -1055,7 +1058,7 @@ export class App {
     const LAYOUT_RESET_MIGRATION_KEY = 'worldmonitor-layout-reset-v2.5';
 
     const isMobile = isMobileDevice();
-    const isDesktopApp = isDesktopRuntime();
+    const isDesktopApp = !IS_GRID_PUBLIC_WEB && isDesktopRuntime();
     const monitors = loadFromStorage<Monitor[]>(STORAGE_KEYS.monitors, []);
 
     // Use mobile-specific defaults on first load (no saved layers)
@@ -1169,8 +1172,19 @@ export class App {
 
       panelSettings = loadFromStorage<Record<string, PanelConfig>>(
         STORAGE_KEYS.panels,
-        DEFAULT_PANELS
+        { ...DEFAULT_PANELS },
       );
+
+      if (IS_GRID_PUBLIC_WEB) {
+        const marker = `signal-grid-public-panel-defaults-v1:${currentVariant}`;
+        if (!localStorage.getItem(marker)) {
+          if (applyGridPublicPanelDefaults(panelSettings, currentVariant)) {
+            panelSettings = restoreProGatedPanels(panelSettings);
+            saveToStorage(STORAGE_KEYS.panels, panelSettings);
+          }
+          localStorage.setItem(marker, 'done');
+        }
+      }
 
       // One-time migration: preserve user preferences across panel key renames.
       const PANEL_KEY_RENAMES_MIGRATION_KEY = 'worldmonitor-panel-key-renames-v2.6.8';
@@ -1307,7 +1321,7 @@ export class App {
 
     if (storageAvailable) {
       // One-time migration: prune removed panel keys from stored settings and order
-      const PANEL_PRUNE_KEY = 'signal-grid-panel-prune-v1';
+      const PANEL_PRUNE_KEY = IS_GRID_PUBLIC_WEB ? 'signal-grid-panel-prune-v2' : 'signal-grid-panel-prune-v1';
       if (!localStorage.getItem(PANEL_PRUNE_KEY)) {
         const validKeys = new Set(Object.keys(ALL_PANELS));
         let pruned = false;
@@ -1329,6 +1343,13 @@ export class App {
           } catch { localStorage.removeItem(orderKey); }
         }
         localStorage.setItem(PANEL_PRUNE_KEY, 'done');
+      }
+
+      if (IS_GRID_PUBLIC_WEB) {
+        const keys = Object.keys(panelSettings);
+        const removed = keys.filter((key) => !isGridPanelAvailable(key));
+        for (const key of removed) delete panelSettings[key];
+        if (removed.length > 0) saveToStorage(STORAGE_KEYS.panels, panelSettings);
       }
 
       // One-time migration: clear stale panel ordering and sizing state

@@ -24,6 +24,7 @@ import {
 const EN: unknown = JSON.parse(readFileSync(new URL('../src/locales/en.json', import.meta.url), 'utf8'));
 
 const facts = (overrides: Partial<SettingsFacts> = {}): SettingsFacts => ({
+  publicWeb: false,
   signedIn: true,
   canSignIn: true,
   isDesktopApp: false,
@@ -36,6 +37,7 @@ const facts = (overrides: Partial<SettingsFacts> = {}): SettingsFacts => ({
 });
 
 const signedOut = facts({ signedIn: false, account: null, embedAccess: false });
+const availableSections = SETTINGS_SECTION_IDS.filter(id => id !== 'ai' && id !== 'mcp-clients');
 
 function at(page: SettingsSectionId | null, f = facts(), layout: NavLayout = 'sheet'): NavState {
   return reduceNav(null, { type: 'open', target: page ?? undefined, layout, recent: null }, f);
@@ -77,7 +79,7 @@ describe('settings sections registry', () => {
       ['desktop', facts({ isDesktopApp: true }), 'notifications', false],
       ['embed access', facts(), 'embeds', true],
       ['no embed access', facts({ embedAccess: false }), 'embeds', false],
-      ['signed out', signedOut, 'mcp-clients', true],
+      ['signed out', signedOut, 'mcp-clients', false],
       ['signed out', signedOut, 'api-keys', true],
       ['signed out', signedOut, 'sync', true],
       ['desktop', facts({ isDesktopApp: true }), 'about', true],
@@ -85,6 +87,17 @@ describe('settings sections registry', () => {
     for (const [label, f, id, expected] of cases) {
       assert.equal(isAvailable(id, f), expected, `${id} when ${label}`);
     }
+  });
+
+  it('lists only public sections and falls back safely from old paid targets', () => {
+    const publicFacts = facts({ publicWeb: true });
+    assert.deepEqual(rowIds(publicFacts), ['panels', 'sources', 'display', 'map', 'video', 'sync', 'about']);
+    assert.equal(openIn('modal', 'api-keys', 'embeds', publicFacts).page, 'display');
+    assert.equal(at('notifications', publicFacts).page, null);
+    assert.ok(!rowIds({ ...signedOut, publicWeb: true }).includes('sign-in'));
+    const localBackup = buildNav(publicFacts).flatMap(group => group.rows)
+      .find(row => row.kind === 'section' && row.id === 'sync');
+    assert.equal(localBackup?.kind === 'section' && localBackup.labelKey, 'settings.sections.importExport');
   });
 
   it('shows a sign-in row in place of the account card when signed out', () => {
@@ -104,7 +117,7 @@ describe('settings sections registry', () => {
     const desktopNoEmbeds = rowIds(facts({ isDesktopApp: true, embedAccess: false }));
     assert.ok(!desktopNoEmbeds.includes('notifications'));
     assert.ok(!desktopNoEmbeds.includes('embeds'));
-    assert.deepEqual(rowIds(facts()), [...SETTINGS_SECTION_IDS]);
+    assert.deepEqual(rowIds(facts()), availableSections);
   });
 
   it('groups rows under their headings, with the account card ungrouped', () => {
@@ -128,7 +141,7 @@ describe('settings sections registry', () => {
     assert.deepEqual(rows.get('account')?.summary, { kind: 'account', plan: 'Pro', email: 'a@example.com' });
     assert.equal(rows.get('map')?.summary, null);
     assert.equal(rows.get('api-keys')?.badge, 'pro');
-    assert.equal(rows.get('mcp-clients')?.badge, null);
+    assert.equal(rows.has('mcp-clients'), false);
   });
 
   it('follows the theme in the display summary', () => {
@@ -205,13 +218,13 @@ describe('settings navigation effects', () => {
   });
 
   it('leaves without entering on back', () => {
-    const mcp = at('mcp-clients');
-    assert.deepEqual(diffNav(mcp, reduceNav(mcp, { type: 'back' }, facts())), { leave: 'mcp-clients', enter: null });
+    const video = at('video');
+    assert.deepEqual(diffNav(video, reduceNav(video, { type: 'back' }, facts())), { leave: 'video', enter: null });
   });
 
   it('has no effects for a no-op transition', () => {
-    const mcp = at('mcp-clients');
-    assert.deepEqual(diffNav(mcp, reduceNav(mcp, { type: 'select', id: 'mcp-clients' }, facts())), { leave: null, enter: null });
+    const video = at('video');
+    assert.deepEqual(diffNav(video, reduceNav(video, { type: 'select', id: 'video' }, facts())), { leave: null, enter: null });
     const home = at(null);
     assert.deepEqual(diffNav(home, reduceNav(home, { type: 'back' }, facts())), { leave: null, enter: null });
   });
@@ -335,8 +348,8 @@ describe('settings sidebar search', () => {
 
   it('keeps every row for an empty or blank query', () => {
     const all = buildNav(facts());
-    assert.deepEqual(ids(searchNav(all, '', text).groups), [...SETTINGS_SECTION_IDS]);
-    assert.deepEqual(ids(searchNav(all, '   ', text).groups), [...SETTINGS_SECTION_IDS]);
+    assert.deepEqual(ids(searchNav(all, '', text).groups), availableSections);
+    assert.deepEqual(ids(searchNav(all, '   ', text).groups), availableSections);
   });
 
   it('matches the translated label and description, ignoring case', () => {
@@ -346,12 +359,12 @@ describe('settings sidebar search', () => {
 
   it('matches registry keywords and needs every word of the query', () => {
     const search = (q: string) => ids(searchNav(buildNav(facts()), q, text).groups);
-    assert.deepEqual(search('ollama'), ['account', 'ai']);
+    assert.deepEqual(search('ollama'), ['account']);
     assert.deepEqual(search('text size'), ['account', 'panels', 'display']);
     assert.deepEqual(search('desktop key'), ['account', 'api-keys']);
     assert.deepEqual(search('telegram'), ['account', 'notifications']);
     assert.deepEqual(search('backup'), ['account', 'sync']);
-    assert.deepEqual(search('claude'), ['account', 'mcp-clients']);
+    assert.deepEqual(search('claude'), ['account']);
     assert.deepEqual(search('globe tiles'), ['account', 'map']);
     assert.deepEqual(search('stream autoplay'), ['account', 'video']);
   });

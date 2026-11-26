@@ -1,4 +1,5 @@
-import { isGridPanelAvailable } from './grid-panels';
+import { isGridPanelAvailable, PUBLIC_OPT_IN_PANELS } from './grid-panels';
+import { IS_GRID_PUBLIC_WEB } from './grid-profile';
 import type { PanelConfig, MapLayers, DataSourceId } from '@/types';
 import { SITE_VARIANT } from './variant';
 // boundary-ignore: isDesktopRuntime is a pure env probe with no service dependencies
@@ -1164,7 +1165,9 @@ const ENERGY_MOBILE_MAP_LAYERS: MapLayers = {
 // ============================================
 
 function gridVisiblePanelConfigs(panels: Record<string, PanelConfig>): Record<string, PanelConfig> {
-  return Object.fromEntries(Object.entries(panels).filter(([key]) => isGridPanelAvailable(key)));
+  return Object.fromEntries(Object.entries(panels).filter(([key, config]) =>
+    isGridPanelAvailable(key, config.premium),
+  ));
 }
 
 type PanelVariant = 'full' | 'tech' | 'finance' | 'commodity' | 'energy' | 'happy';
@@ -1200,7 +1203,7 @@ export const ALL_PANELS: Record<string, PanelConfig> = {
   ...VARIANT_PANEL_CONFIGS.full,
 };
 
-/** Per-variant canonical panel order (keys = which panels are enabled by default). */
+/** Per-variant canonical panel order, including panels available on request. */
 export const VARIANT_DEFAULTS: Record<string, string[]> = {
   full:      Object.keys(VARIANT_PANEL_CONFIGS.full),
   tech:      Object.keys(VARIANT_PANEL_CONFIGS.tech),
@@ -1244,11 +1247,39 @@ export const VARIANT_PANEL_OVERRIDES: Partial<Record<string, Partial<Record<stri
  * Returns the effective panel config for a given key and variant,
  * applying variant-specific display overrides (name, premium, etc.).
  */
-export function getEffectivePanelConfig(key: string, variant: string): PanelConfig {
+function getCatalogPanelConfig(key: string, variant: string): PanelConfig {
   const base = getVariantPanelConfigs(variant)?.[key] ?? ALL_PANELS[key];
   if (!base) return { name: key, enabled: false, priority: 2 };
   const override = VARIANT_PANEL_OVERRIDES[variant]?.[key] ?? {};
   return { ...base, ...override };
+}
+
+export function getEffectivePanelConfig(key: string, variant: string): PanelConfig {
+  const config = getCatalogPanelConfig(key, variant);
+  if (!IS_GRID_PUBLIC_WEB) return config;
+  delete config.premium;
+  if (PUBLIC_OPT_IN_PANELS.has(key)) config.enabled = false;
+  return config;
+}
+
+/** Apply the new defaults to untouched layouts. A saved preference takes precedence. */
+export function applyGridPublicPanelDefaults(panelSettings: Record<string, PanelConfig>, variant: string): boolean {
+  const nativeKeys = new Set(VARIANT_DEFAULTS[variant] ?? []);
+  const matchesOldDefaults = Object.entries(panelSettings).every(([key, config]) => {
+    if (!Object.prototype.hasOwnProperty.call(ALL_PANELS, key)) return true;
+    const legacy = getCatalogPanelConfig(key, variant);
+    return config.fontScale === undefined
+      && (config.enabled || config.proGated === true) === (nativeKeys.has(key) && legacy.enabled);
+  });
+  if (!matchesOldDefaults) return false;
+  let changed = false;
+  for (const key of PUBLIC_OPT_IN_PANELS) {
+    const config = panelSettings[key];
+    if (!config?.enabled && !config?.proGated) continue;
+    userSetPanelEnabled(config, false);
+    changed = true;
+  }
+  return changed;
 }
 
 /**
@@ -1292,7 +1323,9 @@ export function isFreePanelCapCounted(
   config?: Pick<PanelConfig, 'premium'>,
   variant: string = SITE_VARIANT,
 ): boolean {
-  if (key === 'map' || key.startsWith('cw-')) return false;
+  if (key === 'map' || key.startsWith('cw-') || (IS_GRID_PUBLIC_WEB && PUBLIC_OPT_IN_PANELS.has(key))) {
+    return false;
+  }
   const effectiveConfig = Object.prototype.hasOwnProperty.call(ALL_PANELS, key)
     ? getEffectivePanelConfig(key, variant)
     : config;
@@ -1329,6 +1362,7 @@ export function restoreFreeMapPanelAccess(
  * Mirrors the entitlement checks in panel-layout.ts (single source of truth).
  */
 export function isPanelEntitled(key: string, config: PanelConfig, isPro = false): boolean {
+  if (IS_GRID_PUBLIC_WEB && !isGridPanelAvailable(key)) return false;
   if (!config.premium) return true;
   // Dodo entitlements unlock all premium panels
   if (isEntitled()) return true;
@@ -1705,6 +1739,7 @@ export function getProPanelKeys(
   panelSettings: Record<string, PanelConfig>,
   variant: string,
 ): string[] {
+  if (IS_GRID_PUBLIC_WEB) return [];
   return Object.keys(panelSettings).filter((key) =>
     panelSettings[key]?.enabled && Boolean(getEffectivePanelConfig(key, variant).premium),
   );

@@ -97,7 +97,7 @@ export class ThreatTimelinePanel extends Panel {
     this.setCount(state.items.length);
     if (!state.hasData) {
       const message = state.status === 'degraded'
-        ? 'No recent threat metadata available from the intelligence snapshot.'
+        ? 'Threat timeline data temporarily unavailable.'
         : 'No recent threat metadata in the last 7 days.';
       this.renderEmpty(message, state.degradedReasons);
       return;

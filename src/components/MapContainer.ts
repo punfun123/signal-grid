@@ -17,6 +17,7 @@ import { mercatorCenterForOffset, visibleMapArea, type ScreenOffset } from '@/ut
 import {
   isLayerToggleAllowed,
   isLayerEntitled,
+  isGridMapLayerAvailable,
   sanitizeLockedLayers,
   sanitizeResilienceScoreForRenderer,
   shouldSanitizeLockedLayers,
@@ -79,6 +80,7 @@ import { NotamAirspaceLayer } from './NotamAirspaceLayer';
 import type { NotamAirspaceRestriction } from '@/services/notam-airspace';
 import type { No2ActivitySnapshot } from '@/services/economic/no2-activity';
 import type { ScenarioVisualState, ScenarioResult } from '@/config/scenario-templates';
+import { IS_GRID_PUBLIC_WEB } from '@/config/grid-profile';
 import { getAuthState } from '@/services/auth-state';
 import { hasPremiumAccess } from '@/services/panel-gating';
 import { trackGateHit } from '@/services/analytics';
@@ -1206,11 +1208,11 @@ export class MapContainer {
     // Strip resilience on non-DeckGL, then locked premium layers for settled free users (#6045).
     // Wait for isProTierResolved so Pro users don't lose resilienceScore during Clerk/Convex boot.
     let sanitized = sanitizeResilienceScoreForRenderer(layers, this.useDeckGL);
-    if (!options.bypassEntitlementSanitization && shouldSanitizeLockedLayers(
+    if (IS_GRID_PUBLIC_WEB || (!options.bypassEntitlementSanitization && shouldSanitizeLockedLayers(
       hasPremiumAccess(getAuthState()),
       isProTierResolved(),
       this.isFreeTierFallbackActive?.() === true,
-    )) {
+    ))) {
       sanitized = sanitizeLockedLayers(sanitized, false);
     }
     this.initialState = { ...this.initialState, layers: sanitized };
@@ -1822,6 +1824,7 @@ export class MapContainer {
 
   // Layer enable/disable and trigger methods
   public enableLayer(layer: keyof MapLayers): void {
+    if (!isGridMapLayerAvailable(layer)) return;
     if (layer === 'resilienceScore' && !this.useDeckGL) return;
     // #6045 — don't stamp initialState or enable locked premium layers for free users.
     if (!isLayerEntitled(layer, hasPremiumAccess(getAuthState()))) return;
@@ -2180,6 +2183,7 @@ export class MapContainer {
   }
 
   public activateScenario(scenarioId: string, result: ScenarioResult): void {
+    if (IS_GRID_PUBLIC_WEB) return;
     if (!hasPremiumAccess(getAuthState())) {
       trackGateHit('scenario-engine');
       return;

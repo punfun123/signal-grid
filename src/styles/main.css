@@ -1119,7 +1119,7 @@ canvas,
   .header .search-btn { margin-right: 0; }
   .header .region-select { width: 80px; }
   .header .status-indicator,
-  .header .logo { display: none; }
+  .header:not(.header-grid-public) .logo { display: none; }
   .header .variant-option { padding: 2px 4px; letter-spacing: 0.5px; }
   .header .variant-divider { margin: 0; }
 }
@@ -14989,25 +14989,15 @@ button.popup-link {
   z-index: 0;
 }
 
-.panel-live-count {
+.panel-media-count {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
   font-size: calc(10px * var(--wm-panel-effective-scale, 1));
   font-weight: 600;
-  color: var(--semantic-critical-text, var(--semantic-critical));
+  color: var(--text-secondary);
   letter-spacing: 0.5px;
   text-transform: uppercase;
   white-space: nowrap;
-}
-
-.panel-live-count::before {
-  content: '';
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--semantic-critical);
-  animation: live-dot-pulse 2s ease-in-out infinite;
 }
 
 @keyframes live-dot-pulse {
@@ -29571,25 +29561,25 @@ body.map-width-resizing {
   display: none;
 }
 
-@media (min-width: 768px) and (max-width: 980px) {
-  .dashboard-navigation-row {
+@media (min-width: 768px) and (max-width: 1375px) {
+  .dashboard-navigation-row:has(.tablet-variant-mount .variant-switcher) {
     display: flex;
     align-items: center;
     background: var(--surface);
     border-bottom: 1px solid var(--border);
   }
 
-  .dashboard-navigation-row .dashboard-tabs-mount {
+  .dashboard-navigation-row:has(.tablet-variant-mount .variant-switcher) .dashboard-tabs-mount {
     min-width: 0;
     max-width: 50%;
     flex-shrink: 1;
   }
 
-  .dashboard-navigation-row .dashboard-tabs-bar {
+  .dashboard-navigation-row:has(.tablet-variant-mount .variant-switcher) .dashboard-tabs-bar {
     border-bottom: none;
   }
 
-  .tablet-variant-mount {
+  .tablet-variant-mount:has(.variant-switcher) {
     display: block;
     min-width: 0;
     flex: 1;
@@ -31150,8 +31140,7 @@ body.map-width-resizing {
    pulse forever, even while their panel is off-screen. Map markers on these
    devices are settled from the first render by MapComponent. */
 .low-end-device .panel-data-badge.live::before,
-.low-end-device .live-media-shell-dot::before,
-.low-end-device .panel-live-count::before {
+.low-end-device .live-media-shell-dot::before {
   animation: none;
 }
 

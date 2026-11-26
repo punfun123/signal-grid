@@ -161,7 +161,7 @@ export class LiveWebcamsPanel extends Panel {
 
   constructor() {
     super({ id: 'live-webcams', title: t('panels.liveWebcams'), className: 'panel-wide', closable: true, collapsible: true, infoTooltip: t('components.liveWebcams.infoTooltip') });
-    this.insertLiveCountBadge(sourcedFeeds().length);
+    this.insertMediaCountBadge(sourcedFeeds().length, 'cameras');
 
     const prefs = loadWebcamPrefs(this.forceSingleView);
     this.regionFilter = prefs.regionFilter;

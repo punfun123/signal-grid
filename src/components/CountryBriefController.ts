@@ -1,4 +1,5 @@
 import { IS_EMBEDDED_PREVIEW } from '@/utils/embedded-preview';
+import { IS_GRID_PUBLIC_WEB } from '@/config/grid-profile';
 import { toReservoirLevelsSnapshot } from '@/services/climate/reservoir-levels';
 import { ZodError } from 'zod';
 import type { ChinaDecisionSignalSnapshot } from '../../shared/china-decision-signals';
@@ -146,6 +147,7 @@ export class CountryBriefController {
   refreshPremium(): void {
     this.premiumRequest.abort();
     this.premiumRequest = new AbortController();
+    if (IS_GRID_PUBLIC_WEB) return;
     if (!this.source.canRequestPremium()) {
       this.panel.setSectionFailure?.('trade', 'locked', 'Upgrade to PRO for trade exposure');
       return;

@@ -12,7 +12,7 @@ import { fileURLToPath } from 'node:url';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(__dirname, '..');
 
-const css = readFileSync(resolve(repoRoot, 'src/styles/main.css'), 'utf8');
+const css = readFileSync(resolve(repoRoot, 'src/styles/main.css'), 'utf8').replace(/\r\n/g, '\n');
 const mapSrc = readFileSync(resolve(repoRoot, 'src/components/Map.ts'), 'utf8');
 
 // #4669: every map-scoped infinite pulse must stop once the map settles, so the
@@ -164,7 +164,7 @@ describe('marker pulse settle (#4669)', () => {
       'the low-end branch must run before the settled class is cleared',
     );
     assert.match(body.slice(lowEnd), /classList\.add\('markers-settled'\);\s*return;/);
-    for (const sel of ['.panel-data-badge.live::before', '.live-media-shell-dot::before', '.panel-live-count::before']) {
+    for (const sel of ['.panel-data-badge.live::before', '.live-media-shell-dot::before']) {
       assert.match(css, new RegExp(`\\.low-end-device ${escapeRegExp(sel)}`), `missing .low-end-device ${sel}`);
     }
   });

@@ -50,6 +50,7 @@ import { vesselTypeLabel } from '@/utils/vessel-type-label';
 import { getAuthState, subscribeAuthState } from '@/services/auth-state';
 import { onEntitlementChange } from '@/services/entitlements';
 import { hasPremiumAccess } from '@/services/panel-gating';
+import { IS_GRID_PUBLIC_WEB } from '@/config/grid-profile';
 import { trackGateHit } from '@/services/analytics';
 import { bindCyberNetworkSection, renderCyberNetworkSection } from './cyber-network-info';
 import { renderPopupSourceLinks } from './map-popup-source-links';
@@ -345,7 +346,7 @@ export class MapPopup {
       const eventMs = eventTimeFor(data.type, data.data);
       let eventCompare: EventCompareHooks | undefined;
       let unsubscribeAuth: (() => void) | null = null;
-      if (eventMs !== null) {
+      if (!IS_GRID_PUBLIC_WEB && eventMs !== null) {
         const access = hasPremiumAccess(getAuthState()) ? 'open' : 'locked';
         if (access === 'locked') trackGateHit('orbital-event-compare');
         eventCompare = {
@@ -466,7 +467,7 @@ export class MapPopup {
     }
 
     // Mount transit chart for waterway popups after DOM insertion
-    if (data.type === 'waterway') {
+    if (!IS_GRID_PUBLIC_WEB && data.type === 'waterway') {
       const waterway = data.data as StrategicWaterway;
       const cp = this.chokepointData?.chokepoints?.find(
         c => c.id === waterway.chokepointId,
@@ -1799,7 +1800,7 @@ export class MapPopup {
     // available — a zero-state fill (partial portwatch) means the per-id
     // history key is also empty, so there's nothing to fetch.
     const hasChart = !!cp && cp.transitSummary?.dataAvailable !== false;
-    const isPro = hasPremiumAccess(getAuthState());
+    const isPro = !IS_GRID_PUBLIC_WEB && hasPremiumAccess(getAuthState());
     const sectors = CHOKEPOINT_HS2_SECTORS[waterway.chokepointId];
 
     // Sector mix: only show the compact SVG ring for free users (PRO users get the full HS2RingChart below)
@@ -1810,7 +1811,7 @@ export class MapPopup {
 
     // Transit chart is PRO-gated (real-time PortWatch data)
     let chartSection = '';
-    if (hasChart) {
+    if (!IS_GRID_PUBLIC_WEB && hasChart) {
       if (isPro) {
         chartSection = `<div data-transit-chart="${escapeHtml(waterway.name)}" data-transit-chart-id="${escapeHtml(cp?.id ?? '')}" style="margin-top:10px;min-height:200px;display:flex;align-items:center;justify-content:center;color:var(--text-dim,#888);font-size:calc(12px * var(--wm-panel-effective-scale, 1))">${t('components.supplyChain.loadingHistory') || 'Loading transit history\u2026'}</div>`;
       } else {
@@ -1827,7 +1828,7 @@ export class MapPopup {
 
     // Sector exposure ring is PRO-gated (canvas donut with legend)
     let ringSection = '';
-    if (sectors) {
+    if (!IS_GRID_PUBLIC_WEB && sectors) {
       if (isPro) {
         ringSection = `
           <div class="popup-section-title" style="margin-top:10px;font-size:calc(10px * var(--wm-panel-effective-scale, 1));text-transform:uppercase;opacity:.6;letter-spacing:.06em">${t('popups.mapPopup.waterway.sectorExposure')}</div>

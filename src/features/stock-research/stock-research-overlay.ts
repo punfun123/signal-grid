@@ -9,6 +9,7 @@ import { escapeHtml, sanitizeUrl } from '@/utils/sanitize';
 import { setTrustedHtml, trustedHtml } from '@/utils/dom-utils';
 import { terminalChart } from '@/utils/terminal-chart';
 import { hasPremiumAccess } from '@/services/panel-gating';
+import { IS_GRID_PUBLIC_WEB } from '@/config/grid-profile';
 import {
   tapeClaimForMarketSource,
   tapeClaimLabel,
@@ -146,7 +147,7 @@ export async function openStockResearchOverlay(rawSymbol: string, stock?: Market
   declareOverlay(overlayEl, { reload: 'blocking' });
   overlayEl.setAttribute('aria-label', `${symbol} research`);
 
-  const entitled = hasPremiumAccess();
+  const entitled = !IS_GRID_PUBLIC_WEB && hasPremiumAccess();
   const tape = tapeNote();
   const plottable = stock && hasPlottableMarketSeries(stock) ? stock : null;
 
@@ -167,9 +168,9 @@ export async function openStockResearchOverlay(rawSymbol: string, stock?: Market
           </div>
         </header>
         <div class="stock-research-chart">${plottable ? '' : '<p>No plottable Yahoo series for this symbol yet.</p>'}</div>
-        <section class="stock-research-analyze" data-analyze-state="${entitled ? 'loading' : 'locked'}">
+        ${IS_GRID_PUBLIC_WEB ? '' : `<section class="stock-research-analyze" data-analyze-state="${entitled ? 'loading' : 'locked'}">
           ${entitled ? '<p>Loading analysis…</p>' : '<p>Premium stock analysis and backtest stay locked.</p>'}
-        </section>
+        </section>`}
       </div>
     `, 'Stock research overlay values are escaped before rendering'),
   );

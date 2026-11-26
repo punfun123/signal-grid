@@ -1,6 +1,7 @@
 import type { MapLayers } from '@/types';
 // boundary-ignore: isDesktopRuntime is a pure env probe with no service dependencies
 import { isDesktopRuntime } from '@/services/runtime';
+import { IS_GRID_PUBLIC_WEB } from './grid-profile';
 
 /**
  * The three concrete map renderers a layer can be painted by. This is the
@@ -12,7 +13,7 @@ import { isDesktopRuntime } from '@/services/runtime';
 export type RendererKind = 'svg' | 'deck' | 'globe';
 export type MapVariant = 'full' | 'tech' | 'finance' | 'happy' | 'commodity' | 'energy';
 
-const _desktop = isDesktopRuntime();
+const _desktop = !IS_GRID_PUBLIC_WEB && isDesktopRuntime();
 
 export interface LayerDefinition {
   key: keyof MapLayers;
@@ -230,23 +231,29 @@ export function isSunsetLayer(key: keyof MapLayers): boolean {
   return !IRAN_ATTACKS_ENABLED && key === 'iranAttacks';
 }
 
+export function isGridMapLayerAvailable(key: keyof MapLayers): boolean {
+  return Object.prototype.hasOwnProperty.call(LAYER_REGISTRY, key)
+    && (!IS_GRID_PUBLIC_WEB || LAYER_REGISTRY[key].premium !== 'locked');
+}
+
 export function getOrderedLayerKeys(variant: MapVariant): Array<keyof MapLayers> {
   return (VARIANT_LAYER_ORDER[variant] ?? VARIANT_LAYER_ORDER.full)
-    .filter(k => !isSunsetLayer(k));
+    .filter(k => !isSunsetLayer(k) && isGridMapLayerAvailable(k));
 }
 
 export function getCompleteLayerCatalogKeys(variant: MapVariant): Array<keyof MapLayers> {
   const primary = getOrderedLayerKeys(variant);
   const seen = new Set(primary);
   const rest = (Object.keys(LAYER_REGISTRY) as Array<keyof MapLayers>)
-    .filter(k => !seen.has(k) && !isSunsetLayer(k));
+    .filter(k => !seen.has(k) && !isSunsetLayer(k) && isGridMapLayerAvailable(k));
   return [...primary, ...rest];
 }
 
 export function getLayersForVariant(variant: MapVariant, kind: RendererKind): LayerDefinition[] {
   return getOrderedLayerKeys(variant)
     .map(k => LAYER_REGISTRY[k])
-    .filter(d => d.renderers.includes(kind));
+    .filter(d => d.renderers.includes(kind))
+    .map(d => IS_GRID_PUBLIC_WEB && d.premium ? { ...d, premium: undefined } : d);
 }
 
 export function getAllowedLayerKeys(variant: MapVariant): Set<keyof MapLayers> {

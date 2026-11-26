@@ -10,6 +10,7 @@ import { PanelGateReason } from '@/services/panel-gating';
 import { lockSvg, upgradeSvg } from '@/components/gate-icons';
 import { dataFreshness, type PanelFreshnessSummary } from '@/services/data-freshness';
 import { formatPanelFreshnessDisplay } from '@/services/panel-freshness-display';
+import { IS_GRID_PUBLIC_WEB } from '@/config/grid-profile';
 import type { ResolvedScope } from '@/services/tab-focus';
 import {
   clearPanelColSpan,
@@ -301,7 +302,7 @@ export class Panel {
       headerLeft.appendChild(this.newBadgeEl);
     }
 
-    if (options.premium && !getSecretState('WORLDMONITOR_API_KEY').present) {
+    if (!IS_GRID_PUBLIC_WEB && options.premium && !getSecretState('WORLDMONITOR_API_KEY').present) {
       const proBadge = h('span', { className: 'panel-pro-badge' }, t('premium.pro'));
       headerLeft.appendChild(proBadge);
     }
@@ -864,12 +865,12 @@ export class Panel {
     this.freshnessBadgeEl.style.display = 'inline-flex';
   }
 
-  protected insertLiveCountBadge(count: number): void {
+  protected insertMediaCountBadge(count: number, unit: 'channels' | 'cameras'): void {
     const headerLeft = this.header.querySelector('.panel-header-left');
     if (!headerLeft) return;
     const badge = document.createElement('span');
-    badge.className = 'panel-live-count';
-    badge.textContent = `${count}`;
+    badge.className = 'panel-media-count';
+    badge.textContent = `${count} ${unit}`;
     headerLeft.appendChild(badge);
   }
 

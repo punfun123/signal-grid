@@ -5677,6 +5677,7 @@
       "embeds": "Embeds",
       "aiAgents": "AI agents (MCP)",
       "sync": "Sync, import & export",
+      "importExport": "Import & Export",
       "about": "About"
     },
     "descriptions": {

@@ -1,6 +1,8 @@
 import type { MapLayers } from '@/types';
 import { CURATED_COUNTRIES } from '@/config/countries';
 import { ORBITAL_WATCH_ENABLED } from '@/config/orbital-watch-flag';
+import { isGridPanelAvailable } from '@/config/grid-panels';
+import { IS_GRID_PUBLIC_WEB } from '@/config/grid-profile';
 // boundary-ignore: commands are built lazily at runtime via getAllCommands()
 import { getCurrentLanguage, getCurrentLanguageTag, t } from '@/services/i18n';
 import { toFlagEmoji } from '@/utils/country-flag';
@@ -303,7 +305,7 @@ export const COMMANDS: Command[] = [
   { id: 'view:light', keywords: ['light', 'light mode', 'day'], label: 'Switch to light mode', icon: '\u2600\uFE0F', category: 'view' },
   // No glyph renders U+26F6 off macOS; SearchModal's renderCommandIcon draws this one as an SVG (#11065).
   { id: 'view:fullscreen', keywords: ['fullscreen', 'full screen'], label: 'Toggle fullscreen', icon: '', category: 'view' },
-  { id: 'view:settings', keywords: ['settings', 'config', 'api keys'], label: 'Open settings', icon: '\u2699\uFE0F', category: 'view' },
+  { id: 'view:settings', keywords: ['settings', 'config', ...(!IS_GRID_PUBLIC_WEB ? ['api keys'] : [])], label: 'Open settings', icon: '\u2699\uFE0F', category: 'view' },
   { id: 'view:refresh', keywords: ['refresh', 'reload', 'refresh all'], label: 'Refresh all data', icon: '\u{1F504}', category: 'view' },
   { id: 'view:resilience', keywords: ['resilience', 'resilience score', 'baseline', 'stress', 'country resilience'], label: 'Toggle resilience score', icon: '\u{1F6E1}\uFE0F', category: 'view' },
   { id: 'view:route-explorer', keywords: ['route', 'explorer', 'ship', 'shipping', 'freight', 'cargo', 'lane', 'hs code', 'hs2', 'import', 'export', 'plan a shipment'], label: 'Route Explorer \u2014 plan a shipment', icon: '\u{1F6A2}', category: 'view' },
@@ -316,6 +318,12 @@ export const COMMANDS: Command[] = [
   { id: 'time:48h', keywords: ['48h', '2 days', 'last 2 days'], label: 'Show events from last 48 hours', icon: '\u{1F4C5}', category: 'actions' },
   { id: 'time:7d', keywords: ['7d', 'week', 'last week', '7 days'], label: 'Show events from last 7 days', icon: '\u{1F5D3}\uFE0F', category: 'actions' },
 ];
+
+const SITE_COMMANDS = COMMANDS.filter(({ id }) => {
+  if (!IS_GRID_PUBLIC_WEB) return true;
+  const [kind, target = ''] = id.split(':', 2);
+  return id !== 'view:route-explorer' && (kind !== 'panel' || isGridPanelAvailable(target.split('@')[0]!));
+});
 
 // All ISO 3166-1 alpha-2 codes — Intl.DisplayNames resolves human-readable names at runtime
 const ISO_CODES = [
@@ -419,11 +427,11 @@ function buildCountryCommands(): Command[] {
 
   _cachedLang = lang;
   _cachedCountryCommands = result;
-  _cachedAllCommands = [...injectLocalizedKeywords(COMMANDS), ...result];
+  _cachedAllCommands = [...injectLocalizedKeywords(SITE_COMMANDS), ...result];
   return result;
 }
 
 export function getAllCommands(): Command[] {
   buildCountryCommands();
-  return _cachedAllCommands.length > 0 ? _cachedAllCommands : COMMANDS;
+  return _cachedAllCommands.length > 0 ? _cachedAllCommands : SITE_COMMANDS;
 }

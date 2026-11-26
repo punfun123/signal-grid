@@ -1,5 +1,7 @@
 import { CANONICAL_FEEDS, INTEL_SOURCES, SOURCE_REGION_MAP } from '@/config/feeds';
 import { WEB_APP_ORIGIN } from '@/config/web-origin';
+import { IS_GRID_PUBLIC_WEB } from '@/config/grid-profile';
+import { isGridPanelAvailable } from '@/config/grid-panels';
 import { openExternalUrl } from '@/services/external-navigation';
 import { THEATER_PRESETS, getTheaterPreset, getTheaterPresetEnableList, resolveTheaterPresetSources, type TheaterPreset } from '@/config/theater-presets';
 import {
@@ -1093,6 +1095,7 @@ export class UnifiedSettings {
   private readFacts(): SettingsFacts {
     const user = getAuthState().user;
     return {
+      publicWeb: IS_GRID_PUBLIC_WEB,
       signedIn: user !== null,
       canSignIn: isClerkAuthEnabled(),
       isDesktopApp: this.config.isDesktopApp,
@@ -1412,7 +1415,7 @@ export class UnifiedSettings {
     el.setAttribute('aria-labelledby', `us-page-${id}-title`);
     el.hidden = true;
     setTrustedHtml(el, trustedHtml(
-      `<h2 class="us-page-title" id="us-page-${id}-title" tabindex="-1">${escapeHtml(t(sectionLabelKey(id)))}</h2>`
+      `<h2 class="us-page-title" id="us-page-${id}-title" tabindex="-1">${escapeHtml(t(sectionLabelKey(id, IS_GRID_PUBLIC_WEB)))}</h2>`
       + '<div class="us-page-body" data-settings-body></div>',
       'settings page frame; escaped translation',
     ));
@@ -1585,7 +1588,7 @@ export class UnifiedSettings {
           ${dashboardSiteLinksHtml(resolveDashboardSiteOrigin({
             isDesktopApp: this.config.isDesktopApp,
             hostname: window.location.hostname,
-          }))}
+          }), IS_GRID_PUBLIC_WEB)}
           ${legalLinksHtml(WEB_APP_ORIGIN)}
         </div>
       `, 'about page; link helpers escape every href'));
@@ -1960,7 +1963,8 @@ export class UnifiedSettings {
   /** Every panel the Panels page can list, before the category and filter narrow it. */
   private listedPanelEntries(): Array<[string, PanelConfig]> {
     return Object.entries(this.draftPanelSettings)
-      .filter(([key]) => (key !== 'runtime-config' || this.config.isDesktopApp) && !key.startsWith('cw-'));
+      .filter(([key]) => (key !== 'runtime-config' || this.config.isDesktopApp)
+        && !key.startsWith('cw-') && (!IS_GRID_PUBLIC_WEB || isGridPanelAvailable(key)));
   }
 
   private getVisiblePanelEntries(): Array<[string, PanelConfig]> {
@@ -2047,7 +2051,8 @@ export class UnifiedSettings {
     );
     for (const key of Object.keys(ALL_PANELS)) {
       if (!(key in cloned)) {
-        cloned[key] = { ...getEffectivePanelConfig(key, SITE_VARIANT), enabled: isPanelInVariantDefaults(key) };
+        const config = getEffectivePanelConfig(key, SITE_VARIANT);
+        cloned[key] = { ...config, enabled: isPanelInVariantDefaults(key) && config.enabled };
       }
     }
     return cloned;
@@ -2097,7 +2102,9 @@ export class UnifiedSettings {
     if (!panel.enabled && !isProUser() && isFreePanelCapCounted(key, resolvedPanel)) {
       const enabledCount = countFreePanelCapUsage(this.draftPanelSettings);
       if (enabledCount >= FREE_MAX_PANELS) {
-        showToast(t('modals.settingsWindow.freePanelLimit', { max: String(FREE_MAX_PANELS) }));
+        showToast(IS_GRID_PUBLIC_WEB
+          ? `The ${FREE_MAX_PANELS} standard panel slots are full. Turn one off to add another.`
+          : t('modals.settingsWindow.freePanelLimit', { max: String(FREE_MAX_PANELS) }));
         return;
       }
     }

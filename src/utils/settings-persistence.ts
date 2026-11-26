@@ -14,6 +14,10 @@ export interface ImportResult {
 import { CLOUD_SYNC_KEYS } from './sync-keys';
 import { invalidatePanelStorageCacheForKeys } from './panel-storage';
 import { safeStorageSnapshot } from './safe-storage';
+import { isGridPanelAvailable } from '@/config/grid-panels';
+import { IS_GRID_PUBLIC_WEB } from '@/config/grid-profile';
+import { isGridMapLayerAvailable } from '@/config/map-layer-definitions';
+import type { MapLayers } from '@/types';
 import { PINNED_WEBCAMS_KEY, normalizePinnedWebcamsPreference } from '../../shared/pinned-webcams';
 
 const MAX_IMPORT_SIZE_BYTES = 5 * 1024 * 1024;
@@ -146,6 +150,36 @@ function normalizeStoredJson(raw: string, normalize: (parsed: unknown) => unknow
   return state === null ? null : JSON.stringify(state);
 }
 
+function normalizeGridLayoutSetting(key: string, raw: string): string | null {
+  if (!IS_GRID_PUBLIC_WEB) return raw;
+  if (key === 'panel-order' || key === 'panel-order-bottom-set') {
+    return normalizeStoredJson(raw, (value) => Array.isArray(value)
+      ? value.filter(id => typeof id === 'string' && isGridPanelAvailable(id))
+      : null);
+  }
+  if (/^worldmonitor-panels(?:-|$)/.test(key)) {
+    return normalizeStoredJson(raw, (value) => isRecord(value)
+      ? Object.fromEntries(Object.entries(value).filter(([id, config]) =>
+        isGridPanelAvailable(id) && isRecord(config)
+        && typeof config.enabled === 'boolean',
+      ))
+      : null);
+  }
+  if (key === 'worldmonitor-panel-spans' || key === 'worldmonitor-panel-col-spans') {
+    return normalizeStoredJson(raw, (value) => isRecord(value)
+      ? Object.fromEntries(Object.entries(value).filter(([id]) => isGridPanelAvailable(id)))
+      : null);
+  }
+  if (/^worldmonitor-layers(?:-|$)/.test(key)) {
+    return normalizeStoredJson(raw, (value) => isRecord(value)
+      ? Object.fromEntries(Object.entries(value).filter(([id, enabled]) =>
+        typeof enabled === 'boolean' && isGridMapLayerAvailable(id as keyof MapLayers),
+      ))
+      : null);
+  }
+  return raw;
+}
+
 async function parseImportedEntries(parsed: unknown): Promise<Array<[string, string]>> {
   if (!isRecord(parsed) || !isRecord(parsed.data)) {
     throw new Error('Invalid format: expected an object with a data property.');
@@ -194,7 +228,8 @@ async function parseImportedEntries(parsed: unknown): Promise<Array<[string, str
     if (key === 'worldmonitor-monitors' && !isMonitorList(JSON.parse(stored))) {
       throw new Error('Invalid setting: worldmonitor-monitors must contain monitor records.');
     }
-    entries.push([key, stored]);
+    const normalized = normalizeGridLayoutSetting(key, stored);
+    if (normalized !== null) entries.push([key, normalized]);
   }
   return entries;
 }
@@ -226,7 +261,11 @@ export function exportSettings(): void {
   let variant = 'full';
   for (const [key, value] of snapshot.entries) {
     if (key === 'worldmonitor-variant' && value) variant = value;
-    if (isSettingsKey(key)) data[key] = key === PINNED_WEBCAMS_KEY ? normalizePinnedWebcamsPreference(value) : value;
+    if (!isSettingsKey(key)) continue;
+    const normalized = key === PINNED_WEBCAMS_KEY
+      ? normalizePinnedWebcamsPreference(value)
+      : normalizeGridLayoutSetting(key, value);
+    if (normalized !== null) data[key] = normalized;
   }
 
   const exportData: ExportedSettings = {

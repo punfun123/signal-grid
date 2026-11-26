@@ -179,7 +179,7 @@ export class LiveNewsPanel extends Panel {
 
   constructor() {
     super({ id: 'live-news', title: getPanelDisplayName('live-news'), className: 'panel-wide', closable: true, collapsible: true });
-    this.insertLiveCountBadge(OPTIONAL_LIVE_CHANNELS.filter(hasBuiltinStreams).length);
+    this.insertMediaCountBadge(OPTIONAL_LIVE_CHANNELS.filter(hasBuiltinStreams).length, 'channels');
     this.channels = loadChannelsFromStorage();
     if (this.channels.length === 0) this.channels = getDefaultLiveChannels();
     const savedChannelId = loadFromStorage<string>(STORAGE_KEYS.activeChannel, '');

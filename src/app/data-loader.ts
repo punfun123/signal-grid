@@ -1,4 +1,5 @@
 import type { AppContext, AppModule } from '@/app/app-context';
+import { IS_GRID_PUBLIC_WEB } from '@/config/grid-profile';
 import { enqueueSentryCall } from '@/bootstrap/sentry-defer';
 import { isAnalyticsHost, track } from '@/services/analytics';
 import { isPageUnloading } from '@/bootstrap/page-unload-signal';
@@ -2862,7 +2863,9 @@ export class DataLoaderManager implements AppModule {
       } else if (stockAvailability.finnhubStatus) {
         this.ctx.statusPanel?.updateApi('Finnhub', { status: stockAvailability.finnhubStatus });
         if (stockAvailability.marketsConfigError) {
-          this.ctx.panels['markets']?.showConfigError(stockAvailability.marketsConfigError);
+          this.ctx.panels['markets']?.showConfigError(IS_GRID_PUBLIC_WEB
+            ? 'Market data source not configured.'
+            : stockAvailability.marketsConfigError);
         }
       }
 
@@ -2928,7 +2931,9 @@ export class DataLoaderManager implements AppModule {
             finnhubSkipped: stocksResult.skipped,
           });
           if (heatmapAvailability.configError) {
-            this.ctx.panels['heatmap']?.showConfigError(heatmapAvailability.configError);
+            this.ctx.panels['heatmap']?.showConfigError(IS_GRID_PUBLIC_WEB
+              ? 'Market data source not configured.'
+              : heatmapAvailability.configError);
           }
         }
       }
@@ -3009,7 +3014,7 @@ export class DataLoaderManager implements AppModule {
       // _buildTabBar reads to decide whether the Physical tab exists — so a
       // free viewer sees the commodity tape unchanged rather than a tab that
       // opens onto a 401.
-      if (commoditiesPanel && hasPremiumAccess()) {
+      if (!IS_GRID_PUBLIC_WEB && commoditiesPanel && hasPremiumAccess()) {
         try {
           const physicalGeneration = this.physicalComparisonLoadGuard.begin();
           await loadPhysicalPremiumComparisonIfNeeded(
@@ -4515,7 +4520,9 @@ export class DataLoaderManager implements AppModule {
 
       if (data.length === 0) {
         if (!isFeatureAvailable('economicFred')) {
-          economicPanel?.setFredError(t('components.economic.fredKeyMissing'));
+          economicPanel?.setFredError(IS_GRID_PUBLIC_WEB
+            ? 'Economic data source not configured.'
+            : t('components.economic.fredKeyMissing'));
           this.ctx.statusPanel?.updateApi('FRED', { status: 'error' });
           return;
         }

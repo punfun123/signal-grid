@@ -37,6 +37,7 @@ import { PORTS } from '@/config/ports';
 import { getChokepointRoutes } from '@/config/trade-routes';
 import { STRATEGIC_WATERWAYS } from '@/config/geo';
 import { hasPremiumAccess, readClientEntitlementBelief, readPremiumAccessGrant } from '@/services/panel-gating';
+import { IS_GRID_PUBLIC_WEB } from '@/config/grid-profile';
 import { getAuthState } from '@/services/auth-state';
 import { trackGateHit } from '@/services/analytics';
 import { fetchBypassOptions, fetchChokepointStatus } from '@/services/supply-chain';
@@ -310,6 +311,7 @@ export class CountryDeepDivePanel implements CountryBriefPanel {
   }
 
   private canRequestPremium(): boolean {
+    if (IS_GRID_PUBLIC_WEB) return false;
     return typeof this.source?.canRequestPremium === 'function'
       ? this.source.canRequestPremium()
       : hasPremiumAccess(getAuthState());
@@ -922,9 +924,11 @@ export class CountryDeepDivePanel implements CountryBriefPanel {
     }
 
     if (!summary) this.militaryBody.append(this.makeEmpty('Live flight and vessel observations are unavailable in this view.'));
-    this.defenseIndustrialBody = this.el('div', 'cdp-defense-industrial-mount');
-    this.militaryBody.append(this.defenseIndustrialBody);
-    this.renderDefenseIndustrialBase();
+    if (!IS_GRID_PUBLIC_WEB) {
+      this.defenseIndustrialBody = this.el('div', 'cdp-defense-industrial-mount');
+      this.militaryBody.append(this.defenseIndustrialBody);
+      this.renderDefenseIndustrialBase();
+    }
   }
 
   private renderDefenseIndustrialBase(state: 'current' | 'loading' | 'locked' = 'current'): void {
@@ -3562,7 +3566,7 @@ export class CountryDeepDivePanel implements CountryBriefPanel {
   public updateBrief(data: CountryIntelData): void {
     if (!this.briefBody || data.code !== this.currentCode) return;
     this.briefBody.replaceChildren();
-    if (data.accessNotice) {
+    if (data.accessNotice && !IS_GRID_PUBLIC_WEB) {
       const notice = this.el('div', 'cdp-brief-access');
       const message = data.accessNotice === 'sign-in' ? 'premium.signInToUnlock'
         : data.accessNotice === 'pro' ? 'premium.upgradeDesc' : 'countryBrief.briefUnavailable';
@@ -3589,7 +3593,9 @@ export class CountryDeepDivePanel implements CountryBriefPanel {
       this.currentBriefGeneratedAt = null;
       this.currentBriefCached = null;
       this.currentBriefIsSignalRows = false;
-      if (!data.accessNotice) this.briefBody.append(this.makeEmpty(data.error || data.reason || t('countryBrief.assessmentUnavailable')));
+      if (!data.accessNotice || IS_GRID_PUBLIC_WEB) {
+        this.briefBody.append(this.makeEmpty(data.error || data.reason || t('countryBrief.assessmentUnavailable')));
+      }
       return;
     }
 
@@ -3813,9 +3819,12 @@ export class CountryDeepDivePanel implements CountryBriefPanel {
     const moreActions = this.el('details', 'cdp-more-actions');
     const moreSummary = this.el('summary', 'cdp-action-btn', t('components.countryBrief.moreActions', { defaultValue: 'More actions' }));
     const secondaryActions = this.el('div', 'cdp-secondary-actions');
-    secondaryActions.append(storyButton, exportButton, decisionButton, commodityButton);
+    secondaryActions.append(storyButton, exportButton);
+    if (!IS_GRID_PUBLIC_WEB) secondaryActions.append(decisionButton, commodityButton);
     moreActions.append(moreSummary, secondaryActions);
-    right.append(shareBtn, evidenceButton, maxBtn, moreActions);
+    right.append(shareBtn);
+    if (!IS_GRID_PUBLIC_WEB) right.append(evidenceButton);
+    right.append(maxBtn, moreActions);
     header.append(left, right);
 
     const scoreCard = this.el('section', 'cdp-card cdp-score-card');
@@ -3840,7 +3849,8 @@ export class CountryDeepDivePanel implements CountryBriefPanel {
     }
 
     const summaryGrid = this.el('div', 'cdp-summary-grid');
-    summaryGrid.append(scoreCard, this.renderResilienceWidgetSlot(code));
+    summaryGrid.append(scoreCard);
+    if (!IS_GRID_PUBLIC_WEB) summaryGrid.append(this.renderResilienceWidgetSlot(code));
 
     const bodyGrid = this.el('div', 'cdp-grid');
     const isPro = this.canRequestPremium();
@@ -4015,13 +4025,26 @@ export class CountryDeepDivePanel implements CountryBriefPanel {
     marketsBody.append(this.makeLoading(t('countryBrief.loadingMarkets')));
     briefBody.append(this.makeLoading(t('countryBrief.generatingBrief')));
 
-    bodyGrid.append(fiveFactorScorecardCard, factsCard, ...(chinaSummaryCard ? [chinaSummaryCard] : []), signalsCard, timelineCard, ...(historyCard ? [historyCard] : []), ...(intelMemoryCard ? [intelMemoryCard] : []), newsCard, militaryCard, sanctionsCard, economicCard, no2ActivityCard, housingCard, debtCard, comtradeCard, tariffCard, tradeCard, costShockCalcCard, productImportsCard, marketsCard, energyCard, maritimeCard, commodityVulnerabilityCard, foodStocksCard, infraCard, demographicsCard);
+    const paidCards = new Set([
+      intelMemoryCard, sanctionsCard, debtCard, comtradeCard, tariffCard, tradeCard,
+      costShockCalcCard, productImportsCard, commodityVulnerabilityCard, foodStocksCard, demographicsCard,
+    ]);
+    const cards = [
+      fiveFactorScorecardCard, factsCard, chinaSummaryCard, signalsCard, timelineCard, historyCard,
+      intelMemoryCard, newsCard, militaryCard, sanctionsCard, economicCard, no2ActivityCard, housingCard,
+      debtCard, comtradeCard, tariffCard, tradeCard, costShockCalcCard, productImportsCard, marketsCard,
+      energyCard, maritimeCard, commodityVulnerabilityCard, foodStocksCard, infraCard, demographicsCard,
+    ];
+    bodyGrid.append(...cards.filter((card): card is HTMLElement =>
+      !!card && (!IS_GRID_PUBLIC_WEB || !paidCards.has(card)),
+    ));
     const lead = this.el('div', 'cdp-overview-lead');
     lead.append(briefCard, summaryGrid);
     shell.append(header, lead, bodyGrid);
     this.content.append(shell);
     const sectionOrder = [briefCard, ...Array.from(bodyGrid.children)];
-    this.sections.sort((a, b) => sectionOrder.indexOf(a.card) - sectionOrder.indexOf(b.card));
+    this.sections = this.sections.filter(({ card }) => sectionOrder.includes(card))
+      .sort((a, b) => sectionOrder.indexOf(a.card) - sectionOrder.indexOf(b.card));
     this.presentation = new CountryBriefPresentation(shell, this.sections);
   }
 
