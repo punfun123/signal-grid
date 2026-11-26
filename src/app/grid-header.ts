@@ -62,7 +62,8 @@ export function mountGridTokenControls(host: HTMLElement): void {
     ? iconLink(X_URL, 'SIGNAL GRID on X (Twitter)', X_ICON)
     : iconControl(document.createElement('span'), 'Official X (Twitter) account pending', X_ICON);
   social.classList.add('grid-token-social');
-  if (!X_URL) social.setAttribute('role', 'img');
+  if (X_URL) social.setAttribute('referrerpolicy', 'no-referrer');
+  else social.setAttribute('role', 'img');
   host.append(social);
 
   if (TOKEN_CHART_URL) {
