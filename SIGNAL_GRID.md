@@ -21,7 +21,7 @@ npm run dev -- --host 127.0.0.1
 
 ## 品牌与代币
 
-`src/config/brand.config.ts` 集中管理品牌、代币和源码入口。公开版使用 `public/brand/mascot.png` 作为顶栏标志。Favicon、分享图及 PWA 图标在 `public/favico/`。
+`src/config/brand.config.ts` 集中管理品牌、代币和源码入口。顶栏使用透明标志 `public/brand/mascot-transparent.svg`。Favicon、分享图及 PWA 图标在 `public/favico/`。
 
 | 配置 | 用途 |
 | --- | --- |

@@ -141,7 +141,10 @@ html.wm-pro-banner-reserved .pro-banner-slot {
 .grid-brand-icon {
   display: block;
   flex: none;
-  border-radius: 3px;
+}
+
+:root[data-theme="light"] .grid-brand-icon {
+  filter: drop-shadow(0 0 0.6px rgba(17, 24, 39, 0.82));
 }
 .header .logo-mobile {
   white-space: nowrap;
